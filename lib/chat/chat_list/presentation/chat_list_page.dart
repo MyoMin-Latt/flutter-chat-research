@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_research/chat/chat_list/presentation/atu_chat_page.dart';
 import 'package:flutter_chat_research/core/utils/utils.dart';
 import 'package:flutter_chat_research/core/widgets/widgets.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
@@ -137,6 +138,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 ),
             ],
           ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => const ATuChatPage(),
+          )),
+          child: const Icon(Icons.chat),
         ),
       ),
     );
