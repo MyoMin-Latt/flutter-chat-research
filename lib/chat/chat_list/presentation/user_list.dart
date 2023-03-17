@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_research/chat/models/chat.dart';
+import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../auth/models/user.dart';
 
@@ -12,6 +15,15 @@ class UserListPage extends ConsumerStatefulWidget {
 }
 
 class _UserListPageState extends ConsumerState<UserListPage> {
+  Future<void> addChat(Chat chat) async {
+    await FirebaseFirestore.instance
+        .collection('mml')
+        .doc('mml_id')
+        .collection('chats')
+        .doc(chat.id)
+        .set(chat.toJson());
+  }
+
   Stream<List<User>> getUser() {
     return FirebaseFirestore.instance
         .collection('mml')
@@ -49,11 +61,17 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                 );
                 var user = sortList[index];
                 return InkWell(
-                  onTap: () {},
-                  // onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  //   builder: (context) => MobileChatScreen(
-                  //       name: user.name, uid: 'uid', isGroupChat: false),
-                  // )),
+                  onTap: () {
+                    Chat chat = Chat(
+                      id: const Uuid().v4(),
+                      name: '${ref.watch(userProvider).name} & ${user.name}',
+                      isGroup: '',
+                      users: [ref.watch(userProvider).toJson(), user.toJson()],
+                      messages: [],
+                    );
+                    addChat(chat);
+                    Navigator.of(context).pop();
+                  },
                   child: ListTile(
                     leading: CircleAvatar(child: Text((index + 1).toString())),
                     title: Text(user.name!),
