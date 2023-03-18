@@ -9,8 +9,10 @@ import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart
 import 'package:uuid/uuid.dart';
 
 import '../../../auth/models/user.dart';
+import '../../../core/share/core_provider.dart';
 import '../../models/message.dart';
 import '../../share/chat_provider.dart';
+import 'atu_chat_page.dart';
 
 class MessageListPage extends ConsumerStatefulWidget {
   final Chat chat;
@@ -26,8 +28,8 @@ class MessageListPage extends ConsumerStatefulWidget {
 class _MessageListState extends ConsumerState<MessageListPage> {
   Stream<List<Message>> getMessage() {
     return FirebaseFirestore.instance
-        .collection('mml')
-        .doc('mml_id')
+        .collection('org')
+        .doc('org_id')
         .collection('messages')
         .where('chatId', isEqualTo: widget.chat.id)
         .snapshots()
@@ -51,19 +53,38 @@ class _MessageListState extends ConsumerState<MessageListPage> {
 
   Future<void> sendMessage(Message message) async {
     await FirebaseFirestore.instance
-        .collection('mml')
-        .doc('mml_id')
+        .collection('org')
+        .doc('org_id')
         .collection('messages')
         .doc(message.id)
         .set(message.toJson());
   }
 
+  Future<void> setMessageStatus(String messageId, String status) async {
+    await FirebaseFirestore.instance
+        .collection('org')
+        .doc('org_id')
+        .collection('messages')
+        .doc(messageId)
+        .update({
+      'status': status,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    var networkStatus = ref.watch(networkStatusProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.chat.id),
+        title: Text(widget.chat.name),
         actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => UserListPage(chat: widget.chat),
+            )),
+            icon: const Icon(Icons.person_add),
+          ),
           IconButton(
             onPressed: () {
               var text = generateRandomString(7);
@@ -74,8 +95,10 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 sender: user.toJson(),
                 text: text,
                 sendOn: DateTime.now(),
+                status: 'offline',
               );
-              debugPrint(message.toJson().toString());
+              debugPrint(
+                  'SendMessage : status-offline : ${message.toJson().toString()}');
               sendMessage(message);
             },
             icon: const Icon(Icons.send),
@@ -85,10 +108,13 @@ class _MessageListState extends ConsumerState<MessageListPage> {
       body: StreamBuilder<List<Message>>(
         stream: getMessage(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Loader();
-          }
+          // if (snapshot.connectionState == ConnectionState.waiting) {
+          //   return const Loader();
+          // }
           if (snapshot.hasData) {
+            if (snapshot.data!.isEmpty) {
+              return const NoData();
+            }
             return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
@@ -97,9 +123,31 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                   (a, b) => a.sendOn.compareTo(b.sendOn),
                 );
                 var message = sortList[index];
-                return ListTile(
-                  title: Text('${message.text} by ${message.sender['name']}'),
-                  subtitle: Text(message.chatId),
+
+                if (message.status.toLowerCase() == 'offline') {
+                  // add internet connection state
+                  networkStatus == NetworkStatus.connected
+                      ? setMessageStatus(message.id, 'online')
+                      : null;
+                }
+
+                return Align(
+                  alignment: message.sender['id'] == ref.watch(userProvider).id
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width - 45,
+                      minWidth: 70,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        '${message.text} sent by ${message.sender['name']}  ${message.status}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
                 );
                 // }
               },

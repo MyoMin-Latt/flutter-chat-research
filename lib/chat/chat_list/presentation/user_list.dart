@@ -1,14 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_research/chat/models/chat.dart';
-import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:uuid/uuid.dart';
+
+import 'package:flutter_chat_research/chat/models/chat.dart';
+import 'package:flutter_chat_research/chat/share/chat_provider.dart';
+import 'package:flutter_chat_research/core/utils/firebase_function.dart';
 
 import '../../../auth/models/user.dart';
 
 class UserListPage extends ConsumerStatefulWidget {
-  const UserListPage({super.key});
+  final Chat? chat;
+  const UserListPage({this.chat, super.key});
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() => _UserListPageState();
@@ -17,8 +20,8 @@ class UserListPage extends ConsumerStatefulWidget {
 class _UserListPageState extends ConsumerState<UserListPage> {
   Future<void> addChat(Chat chat) async {
     await FirebaseFirestore.instance
-        .collection('mml')
-        .doc('mml_id')
+        .collection('org')
+        .doc('org_id')
         .collection('chats')
         .doc(chat.id)
         .set(chat.toJson());
@@ -26,8 +29,8 @@ class _UserListPageState extends ConsumerState<UserListPage> {
 
   Stream<List<User>> getUser() {
     return FirebaseFirestore.instance
-        .collection('mml')
-        .doc('mml_id')
+        .collection('org')
+        .doc('org_id')
         .collection('users')
         .snapshots()
         .map((event) {
@@ -48,9 +51,9 @@ class _UserListPageState extends ConsumerState<UserListPage> {
       body: StreamBuilder<List<User>>(
         stream: getUser(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Loader();
-          }
+          // if (snapshot.connectionState == ConnectionState.waiting) {
+          //   return const Loader();
+          // }
           if (snapshot.hasData) {
             return ListView.builder(
               itemCount: snapshot.data!.length,
@@ -69,7 +72,9 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       users: [ref.watch(userProvider).toJson(), user.toJson()],
                       messages: [],
                     );
-                    addChat(chat);
+                    widget.chat != null
+                        ? addUserInChat(user, widget.chat!)
+                        : addChat(chat);
                     Navigator.of(context).pop();
                   },
                   child: ListTile(

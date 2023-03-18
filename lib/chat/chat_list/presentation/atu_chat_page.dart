@@ -1,14 +1,11 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_research/auth/models/models.dart';
 import 'package:flutter_chat_research/chat/chat_list/presentation/message_list_page.dart';
 import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
-import 'package:flutter_chat_research/chat/models/message.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
 class ATuChatPage extends ConsumerStatefulWidget {
   const ATuChatPage({super.key});
@@ -18,37 +15,15 @@ class ATuChatPage extends ConsumerStatefulWidget {
 }
 
 class _ATuChatPageState extends ConsumerState<ATuChatPage> {
-  String generateRandomString(int lengthOfString) {
-    final random = Random();
-    const allChars = 'ABCDEFGabcdefghijklmnopqrstuvwxyz';
-
-    final randomString = List.generate(lengthOfString,
-        (index) => allChars[random.nextInt(allChars.length)]).join();
-    return randomString;
+  @override
+  void initState() {
+    super.initState();
   }
-
-  Future<void> addUser(User user) async {
-    await FirebaseFirestore.instance
-        .collection('mml')
-        .doc('mml_id')
-        .collection('users')
-        .doc(user.id)
-        .set(user.toJson());
-  }
-
-  // Future<void> sendMessage(Message message) async {
-  //   await FirebaseFirestore.instance
-  //       .collection('mml')
-  //       .doc('mml_id')
-  //       .collection('messages')
-  //       .doc(message.id)
-  //       .set(message.toJson());
-  // }
 
   Stream<List<Chat>> getChats() {
     return FirebaseFirestore.instance
-        .collection('mml')
-        .doc('mml_id')
+        .collection('org')
+        .doc('org_id')
         .collection('chats')
         .where('users', arrayContainsAny: [ref.watch(userProvider).toJson()])
         .snapshots()
@@ -68,17 +43,6 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
         title: const Text("ATu_Chat"),
         actions: [
           IconButton(
-            onPressed: () {
-              var name = generateRandomString(2);
-              var email = '$name@gmail.com';
-              var user = User(id: const Uuid().v4(), email: email, name: name);
-              debugPrint(user.toString());
-              ref.read(userProvider.notifier).update((state) => user);
-              addUser(user);
-            },
-            icon: const Icon(Icons.person_add),
-          ),
-          IconButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => const UserListPage(),
@@ -86,22 +50,6 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
             ),
             icon: const Icon(Icons.chat),
           ),
-          // IconButton(
-          //   onPressed: () {
-          //     var text = generateRandomString(7);
-          //     User user = ref.watch(userProvider);
-          //     Message message = Message(
-          //       chatId: const Uuid().v4(),
-          //       id: const Uuid().v4(),
-          //       sender: user.toJson(),
-          //       text: text,
-          //       sendOn: DateTime.now(),
-          //     );
-          //     debugPrint(message.toJson().toString());
-          //     sendMessage(message);
-          //   },
-          //   icon: const Icon(Icons.send),
-          // ),
         ],
       ),
       body: StreamBuilder<List<Chat>>(
@@ -111,6 +59,9 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
             return const Loader();
           }
           if (snapshot.hasData) {
+            if (snapshot.data!.isEmpty) {
+              return const NoData();
+            }
             return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
@@ -119,6 +70,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
                   (a, b) => a.name.compareTo(b.name),
                 );
                 var chat = sortList[index];
+                debugPrint(chat.toString());
                 return InkWell(
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => MessageListPage(chat: chat),
@@ -127,7 +79,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
                     leading: CircleAvatar(child: Text((index + 1).toString())),
                     title: Text(chat.name),
                     subtitle: Text(chat.id),
-                    // subtitle: Text(message.messages.last['text']),
+                    // subtitle: Text(chat.messages.last['text']),
                   ),
                 );
                 // }
@@ -138,6 +90,19 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
           }
         },
       ),
+    );
+  }
+}
+
+class NoData extends StatelessWidget {
+  const NoData({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('No Data'),
     );
   }
 }

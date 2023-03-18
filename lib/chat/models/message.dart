@@ -6,10 +6,11 @@ part 'message.g.dart';
 class Message with _$Message {
   const factory Message({
     required String id,
-    required String chatId,
-    required Map<String, dynamic> sender,
     required String text,
     required DateTime sendOn,
+    required Map<String, dynamic> sender,
+    required String chatId,
+    required String status,
   }) = _Message;
 
   factory Message.fromJson(Map<String, dynamic> json) =>
