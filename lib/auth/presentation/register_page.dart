@@ -51,11 +51,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             Text(email),
             const SizedBox(height: 8),
             OutlinedButton(
-                onPressed: () {
+                onPressed: () async {
                   User user = User(id: id, name: name, email: email, photo: '');
                   debugPrint(user.toJson().toString());
                   ref.read(userProvider.notifier).update((state) => user);
                   saveInLocal(user);
+                  // addUser(user);
+                  // var uid = await readInLocal();
+                  // print('uid : $uid');
+                  // var userinLocal = await getUserInLocal(uid ?? '');
+                  // print('userinLocal : $userinLocal');
                   addUser(user).then(
                     (value) => Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(

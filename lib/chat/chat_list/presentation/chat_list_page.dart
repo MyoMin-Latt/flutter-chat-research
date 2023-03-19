@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_research/auth/presentation/register_page.dart';
+import 'package:flutter_chat_research/chat/chat_list/presentation/atu_chat_page.dart';
+import 'package:flutter_chat_research/chat/share/chat_provider.dart';
+import 'package:flutter_chat_research/core/utils/firebase_function.dart';
+import 'package:flutter_chat_research/core/utils/storage_function.dart';
 import 'package:flutter_chat_research/core/utils/utils.dart';
 import 'package:flutter_chat_research/core/widgets/widgets.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-class ChatListScreen extends StatefulWidget {
+class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  State<ChatListScreen> createState() => _ChatListScreenState();
+  ChatListScreenState createState() => ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class ChatListScreenState extends ConsumerState<ChatListScreen> {
   String _chatId = '';
   String _openChatId = '';
 
@@ -94,6 +99,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    getUser();
+  }
+
+  Future<void> getUser() async {
+    var userId = await readInLocal();
+    getUserInLocal(userId ?? '', ref);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final userId = const Uuid().v1();
 
@@ -141,7 +157,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => const RegisterPage(),
+            builder: (context) => ref.watch(userProvider).id.isEmpty
+                ? const RegisterPage()
+                : const ATuChatPage(),
           )),
           child: const Icon(Icons.chat),
         ),

@@ -7,7 +7,8 @@ void saveInLocal(User user) async {
   prefs.setString('userId', user.id);
 }
 
-readInLocal() async {
+Future<String?> readInLocal() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
+  print('readInLocal : ${prefs.getString('userId')}');
   return prefs.getString('userId');
 }

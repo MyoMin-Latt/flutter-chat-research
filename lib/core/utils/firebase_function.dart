@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
+import 'package:flutter_chat_research/chat/share/chat_provider.dart';
+import 'package:flutter_chat_research/core/utils/storage_function.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../auth/models/user.dart';
 
@@ -42,5 +45,27 @@ Future<void> addUserInChat(User user, Chat chat) async {
       .doc(chat.id)
       .update({
     'users': [...chat.users, user.toJson()]
+  });
+}
+
+Future<User?> getUserInLocal(String userId, WidgetRef ref) async {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('users')
+      .doc(userId)
+      .get()
+      .then((DocumentSnapshot documentSnapshot) {
+    if (documentSnapshot.exists) {
+      var docData = documentSnapshot.data() as Map<String, dynamic>;
+      var user = User.fromJson(docData);
+      // print('Document data: ${documentSnapshot.data()}');
+      print('userMapData in local : $user');
+      ref.read(userProvider.notifier).update((state) => user);
+      return user;
+    } else {
+      // print('Document does not exist on the database');
+      return null;
+    }
   });
 }
