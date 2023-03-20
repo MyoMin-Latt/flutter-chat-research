@@ -376,75 +376,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
     });
   }
 
-  // void onChangeData(List<DocumentChange> documentChanges) {
-  //   var isChange = false;
-  //   debugPrint('MessageListPage : onChangeData : start');
-
-  //   // ignore: avoid_function_literals_in_foreach_calls
-  //   documentChanges.forEach((productChange) {
-  //     if (productChange.type == DocumentChangeType.removed) {
-  //       _products.removeWhere((product) {
-  //         return productChange.doc.id == product.id;
-  //       });
-  //       isChange = true;
-  //     } else {
-  //       if (productChange.type == DocumentChangeType.modified) {
-  //         int indexWhere = _products.indexWhere((product) {
-  //           return productChange.doc.id == product.id;
-  //         });
-
-  //         if (indexWhere >= 0) {
-  //           _products[indexWhere] = productChange.doc;
-  //         }
-  //         isChange = true;
-  //       }
-  //     }
-  //   });
-
-  //   if (isChange) {
-  //     _streamController.add(_products);
-  //   }
-  // }
-
-  @override
-  void initState() {
-    super.initState();
-    FirebaseFirestore.instance
-        .collection('org')
-        .doc('org_id')
-        .collection('messages')
-        .snapshots()
-        .listen((data) {
-      // QuerySnapshot<Map<String, dynamic>>
-      var snapData = data.docs;
-      // debugPrint('listen / snapData : $snapData');
-      List<Message> messageList = [];
-      for (var element in snapData) {
-        // List<QueryDocumentSnapshot<Map<String, dynamic>>>
-        messageList.add(Message.fromJson(element.data()));
-      }
-      // Logger().log(Level.warning, 'listen / messageList : $messageList');
-      debugPrint('listen / messageList[0] : ${messageList.length}');
-
-      var snapDataChange = data.docChanges;
-      // debugPrint('listen / snapDataChange : $snapDataChange');
-      debugPrint('snapDataChange / length : ${snapDataChange.length}');
-      debugPrint(
-          'snapDataChange / doc0 / data: ${snapDataChange[0].doc.data()}');
-      // var msgChange =
-      //     Message.fromJson(snapDataChange[0].doc as Map<String, dynamic>);
-
-      // debugPrint('listen / msgChange : $msgChange');
-      // List<Message> msglist = [];
-      // for (var element in snapDataChange) {
-      //   // List<QueryDocumentSnapshot<Map<String, dynamic>>>
-      //   messageList.add(Message.fromJson(element.doc.data()));
-      // }
-      // // Logger().log(Level.warning, 'listen / messageList : $messageList');
-      // debugPrint('listen / msglist[0] : ${messageList.length}');
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     var networkStatus = ref.watch(networkStatusProvider);
@@ -477,73 +408,78 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           ),
         ],
       ),
-      // body: StreamBuilder<List<Message>>(
-      //   stream: getMessage(),
-      //   builder: (context, snapshot) {
-      //     // if (snapshot.connectionState == ConnectionState.waiting) {
-      //     //   return const Loader();
-      //     // }
-      //     if (snapshot.hasData) {
-      //       if (snapshot.data!.isEmpty) {
-      //         return const NoData();
-      //       }
-      //       return ListView.builder(
-      //         itemCount: snapshot.data!.length,
-      //         itemBuilder: (context, index) {
-      //           var sortList = snapshot.data!;
-      //           sortList.sort(
-      //             (a, b) => a.sendOn.compareTo(b.sendOn),
-      //           );
-      //           var message = sortList[index];
+      body: StreamBuilder<List<Message>>(
+        stream: getMessage(),
+        builder: (context, snapshot) {
+          // if (snapshot.connectionState == ConnectionState.waiting) {
+          //   return const Loader();
+          // }
+          if (snapshot.hasData) {
+            if (snapshot.data!.isEmpty) {
+              return const NoData();
+            }
+            return ListView.builder(
+              itemCount: snapshot.data!.length,
+              itemBuilder: (context, index) {
+                var sortList = snapshot.data!;
+                sortList.sort(
+                  (a, b) => a.sendOn.compareTo(b.sendOn),
+                );
+                var message = sortList[index];
 
-      //           if (message.status.toLowerCase() == 'offline') {
-      //             // add internet connection state
-      //             networkStatus == NetworkStatus.connected
-      //                 ? setMessageStatus(message.id, 'online')
-      //                 : null;
-      //           }
+                if (message.status.toLowerCase() == 'offline') {
+                  // add internet connection state
+                  networkStatus == NetworkStatus.connected
+                      ? setMessageStatus(message.id, 'online')
+                      : null;
+                } else if (message.status.toLowerCase() == 'online' &&
+                    message.sender['id'] != ref.watch(userProvider).id) {
+                  networkStatus == NetworkStatus.connected
+                      ? setMessageStatus(message.id, 'seen')
+                      : null;
+                }
 
-      //           return message.sender['id'] == ref.watch(userProvider).id
-      //               ? Align(
-      //                   alignment: Alignment.centerRight,
-      //                   child: ConstrainedBox(
-      //                     constraints: BoxConstraints(
-      //                       maxWidth: MediaQuery.of(context).size.width - 45,
-      //                       minWidth: 70,
-      //                     ),
-      //                     child: Padding(
-      //                       padding: const EdgeInsets.all(8.0),
-      //                       child: Text(
-      //                         '$index. ${message.text} sent by ${message.sender['name']}  ${message.status}',
-      //                         style: const TextStyle(fontSize: 16),
-      //                       ),
-      //                     ),
-      //                   ),
-      //                 )
-      //               : Align(
-      //                   alignment: Alignment.centerLeft,
-      //                   child: ConstrainedBox(
-      //                     constraints: BoxConstraints(
-      //                       maxWidth: MediaQuery.of(context).size.width - 45,
-      //                       minWidth: 70,
-      //                     ),
-      //                     child: Padding(
-      //                       padding: const EdgeInsets.all(8.0),
-      //                       child: Text(
-      //                         '$index. ${message.text} sent by ${message.sender['name']}  ${message.status}',
-      //                         style: const TextStyle(fontSize: 16),
-      //                       ),
-      //                     ),
-      //                   ),
-      //                 );
-      //           // }
-      //         },
-      //       );
-      //     } else {
-      //       return const Loader();
-      //     }
-      //   },
-      // ),
+                return message.sender['id'] == ref.watch(userProvider).id
+                    ? Align(
+                        alignment: Alignment.centerRight,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width - 45,
+                            minWidth: 70,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              '$index. ${message.text} sent by ${message.sender['name']}  ${message.status}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width - 45,
+                            minWidth: 70,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              '$index. ${message.text} sent by ${message.sender['name']}  ${message.status}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      );
+                // }
+              },
+            );
+          } else {
+            return const Loader();
+          }
+        },
+      ),
     );
   }
 }
