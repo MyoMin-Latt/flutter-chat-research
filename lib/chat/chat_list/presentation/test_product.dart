@@ -67,7 +67,7 @@
 //     return NotificationListener<ScrollNotification>(
 //         onNotification: (ScrollNotification scrollInfo) {
 //           if (scrollInfo.metrics.maxScrollExtent == scrollInfo.metrics.pixels) {
-//             requestNextPage();
+//             // requestNextPage();
 //           }
 //           return true;
 //         },
@@ -80,12 +80,13 @@
 //               case ConnectionState.waiting:
 //                 return new Text('Loading...');
 //               default:
-//                 log("Items: " + snapshot.data.length.toString());
+//                 // log("Items: " + snapshot.data.length.toString());
 //                 return ListView.separated(
 //                   separatorBuilder: (context, index) => Divider(
 //                     color: Colors.black,
 //                   ),
-//                   itemCount: snapshot.data.length,
+//                   itemCount: 2,
+//                   // itemCount: snapshot.data.length,
 //                   itemBuilder: (context, index) => Padding(
 //                     padding: const EdgeInsets.symmetric(vertical: 32),
 //                     child: new ListTile(
