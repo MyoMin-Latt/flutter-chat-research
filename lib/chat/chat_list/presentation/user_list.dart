@@ -67,7 +67,8 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                   onTap: () {
                     Chat chat = Chat(
                       id: const Uuid().v4(),
-                      name: '${ref.watch(userProvider).name} & ${user.name}',
+                      name: '${user.name}',
+                      // name: '${ref.watch(userProvider).name} & ${user.name}',
                       isGroup: '',
                       users: [ref.watch(userProvider).toJson(), user.toJson()],
                       messages: [],

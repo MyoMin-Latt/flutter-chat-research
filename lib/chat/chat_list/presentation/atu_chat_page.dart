@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_research/chat/chat_list/presentation/message_list_page.dart';
@@ -40,7 +39,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("ATu_Chat"),
+        title: Text(ref.watch(userProvider).name.toString()),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(

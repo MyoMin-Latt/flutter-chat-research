@@ -7,6 +7,7 @@ import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../auth/models/user.dart';
@@ -232,6 +233,9 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                         : null;
                   }
 
+                  var date =
+                      DateFormat('dd/MM/yyyy HH:mm').format(message.sendOn);
+
                   return message.sender['id'] == ref.watch(userProvider).id
                       ? Align(
                           alignment: Alignment.centerRight,
@@ -242,9 +246,18 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                '$index. ${message.sendOn} sent by ${message.sender['name']}  ${message.status}',
-                                style: const TextStyle(fontSize: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '$index. ${message.text}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  Text(
+                                    '$date ${message.status}',
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -258,9 +271,18 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                '$index. ${message.sendOn} sent by ${message.sender['name']}  ${message.status}',
-                                style: const TextStyle(fontSize: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$index. ${message.text}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  Text(
+                                    date,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
