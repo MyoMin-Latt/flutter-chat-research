@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -28,6 +29,8 @@ class MessageListPage extends ConsumerStatefulWidget {
 }
 
 class _MessageListState extends ConsumerState<MessageListPage> {
+  final controller = ScrollController();
+  bool jump = true;
   Stream<List<Message>> getMessage() {
     return FirebaseFirestore.instance
         .collection('org')
@@ -77,9 +80,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   }
 
   final _streamController = StreamController<List<Message>>();
-
   List<Message> products = [];
-
   DocumentSnapshot<Object?>? _docSnapshot;
 
   @override
@@ -96,7 +97,17 @@ class _MessageListState extends ConsumerState<MessageListPage> {
       if (products.isEmpty) {
         requestPage();
       } else {
+        SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+          controller.jumpTo(controller.position.maxScrollExtent);
+        });
         onChangeData(data.docChanges);
+      }
+    });
+
+    controller.addListener(() {
+      if (controller.position.minScrollExtent == controller.offset) {
+        setState(() => jump = false);
+        requestPage();
       }
     });
   }
@@ -109,7 +120,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           .collection('messages')
           .where('chatId', isEqualTo: widget.chat.id)
           .orderBy('sendOn', descending: true)
-          .limit(5)
+          .limit(20)
           .get()
           .then((value) {
         for (var element in value.docs) {
@@ -128,7 +139,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           .orderBy('sendOn', descending: true)
           // .startAfter(products)
           .startAfterDocument(_docSnapshot!)
-          .limit(5)
+          .limit(20)
           .get()
           .then((value) {
         for (var element in value.docs) {
@@ -171,6 +182,13 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    controller.dispose();
+    _streamController.close();
+  }
+
+  @override
   Widget build(BuildContext context) {
     var networkStatus = ref.watch(networkStatusProvider);
 
@@ -202,101 +220,110 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async => requestPage(),
-        child: StreamBuilder<List<Message>>(
-          stream: _streamController.stream,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              List<Message>? messageList = snapshot.data;
-
-              debugPrint(
-                  'snapshot / messageList.lenght : ${messageList?.length}');
-              return ListView.builder(
-                itemCount: messageList!.length,
-                itemBuilder: (context, index) {
-                  var sortList = messageList;
-                  sortList.sort(
-                    (a, b) => a.sendOn.compareTo(b.sendOn),
-                  );
-                  var message = sortList[index];
-
-                  if (message.status.toLowerCase() == 'offline') {
-                    // add internet connection state
-                    networkStatus == NetworkStatus.connected
-                        ? setMessageStatus(message.id, 'online')
-                        : null;
-                  } else if (message.status.toLowerCase() == 'online' &&
-                      message.sender['id'] != ref.watch(userProvider).id) {
-                    networkStatus == NetworkStatus.connected
-                        ? setMessageStatus(message.id, 'seen')
-                        : null;
-                  }
-
-                  var date =
-                      DateFormat('dd/MM/yyyy HH:mm').format(message.sendOn);
-
-                  return message.sender['id'] == ref.watch(userProvider).id
-                      ? Align(
-                          alignment: Alignment.centerRight,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width - 45,
-                              minWidth: 70,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '$index. ${message.text}',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                  Text(
-                                    '$date ${message.status}',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width - 45,
-                              minWidth: 70,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '$index. ${message.text}',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                  Text(
-                                    date,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                  // }
-                },
-              );
-            } else {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+      body: StreamBuilder<List<Message>>(
+        stream: _streamController.stream,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            List<Message>? messageList = snapshot.data;
+            // (messageList != null && messageList.length < 20)
+            //     ? SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+            //         controller.jumpTo(controller.position.maxScrollExtent);
+            //       })
+            //     : null;
+            if (jump) {
+              print('Jumb in ListView : $jump');
+              SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+                controller.jumpTo(controller.position.maxScrollExtent);
+              });
             }
-          },
-        ),
+
+            debugPrint(
+                'snapshot / messageList.lenght : ${messageList?.length}');
+            return ListView.builder(
+              controller: controller,
+              itemCount: messageList!.length,
+              itemBuilder: (context, index) {
+                var sortList = messageList;
+                sortList.sort(
+                  (a, b) => a.sendOn.compareTo(b.sendOn),
+                );
+                var message = sortList[index];
+
+                if (message.status.toLowerCase() == 'offline') {
+                  // add internet connection state
+                  networkStatus == NetworkStatus.connected
+                      ? setMessageStatus(message.id, 'online')
+                      : null;
+                } else if (message.status.toLowerCase() == 'online' &&
+                    message.sender['id'] != ref.watch(userProvider).id) {
+                  networkStatus == NetworkStatus.connected
+                      ? setMessageStatus(message.id, 'seen')
+                      : null;
+                }
+
+                var date =
+                    DateFormat('dd/MM/yyyy HH:mm').format(message.sendOn);
+
+                return message.sender['id'] == ref.watch(userProvider).id
+                    ? Align(
+                        alignment: Alignment.centerRight,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width - 45,
+                            minWidth: 70,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$index. ${message.text}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                Text(
+                                  '$date ${message.status}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width - 45,
+                            minWidth: 70,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$index. ${message.text}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                Text(
+                                  date,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                // }
+              },
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
       ),
     );
   }
