@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
+import 'package:flutter_chat_research/core/utils/firebase_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart';
@@ -29,6 +30,7 @@ class MessageListPage extends ConsumerStatefulWidget {
 }
 
 class _MessageListState extends ConsumerState<MessageListPage> {
+  User? peerUser;
   final controller = ScrollController();
   bool jump = true;
   Stream<List<Message>> getMessage() {
@@ -86,6 +88,12 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   @override
   void initState() {
     super.initState();
+    getUser(widget.chat.peerUserId).then((value) {
+      setState(() {
+        peerUser = value;
+      });
+    });
+
     FirebaseFirestore.instance
         .collection('org')
         .doc('org_id')
@@ -95,11 +103,10 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         .listen((data) {
       debugPrint('Firebase listen : start');
       if (products.isEmpty) {
+        debugPrint('products empty : true');
         requestPage();
       } else {
-        SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-          controller.jumpTo(controller.position.maxScrollExtent);
-        });
+        jump = false;
         onChangeData(data.docChanges);
       }
     });
@@ -126,9 +133,11 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         for (var element in value.docs) {
           /// List<QueryDocumentSnapshot<Map<String, dynamic>>>
           products.add(Message.fromJson(element.data()));
+
           _docSnapshot = element;
         }
-        _streamController.add(products);
+        List<Message> setProducts = products.toSet().toList();
+        _streamController.add(setProducts);
       });
     } else {
       await FirebaseFirestore.instance
@@ -137,7 +146,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           .collection('messages')
           .where('chatId', isEqualTo: widget.chat.id)
           .orderBy('sendOn', descending: true)
-          // .startAfter(products)
           .startAfterDocument(_docSnapshot!)
           .limit(20)
           .get()
@@ -147,7 +155,8 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           products.add(Message.fromJson(element.data()));
           _docSnapshot = element;
         }
-        _streamController.add(products);
+        List<Message> setProducts = products.toSet().toList();
+        _streamController.add(setProducts);
       });
     }
   }
@@ -173,19 +182,23 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         } else if (productChange.type == DocumentChangeType.added) {
           products.add(Message.fromJson(documentChanges[0].doc.data()!));
           isChange = true;
+          if (mounted) {
+            var msg = Message.fromJson(productChange.doc.data()!);
+            if (msg.sender['id'] == ref.watch(userProvider).id) {
+              SchedulerBinding.instance.addPostFrameCallback(
+                (timeStamp) {
+                  controller.jumpTo(controller.position.maxScrollExtent);
+                },
+              );
+            }
+          }
         }
       }
     });
     if (isChange) {
-      _streamController.add(products);
+      List<Message> setProducts = products.toSet().toList();
+      _streamController.add(setProducts);
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    controller.dispose();
-    _streamController.close();
   }
 
   @override
@@ -194,7 +207,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.chat.name),
+        title: Text(peerUser?.name ?? ''),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
@@ -214,6 +227,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 sendOn: DateTime.now(),
                 status: 'offline',
               );
+
               sendMessage(message);
             },
             icon: const Icon(Icons.send),
@@ -225,20 +239,12 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             List<Message>? messageList = snapshot.data;
-            // (messageList != null && messageList.length < 20)
-            //     ? SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-            //         controller.jumpTo(controller.position.maxScrollExtent);
-            //       })
-            //     : null;
             if (jump) {
-              print('Jumb in ListView : $jump');
               SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
                 controller.jumpTo(controller.position.maxScrollExtent);
               });
             }
 
-            debugPrint(
-                'snapshot / messageList.lenght : ${messageList?.length}');
             return ListView.builder(
               controller: controller,
               itemCount: messageList!.length,
@@ -250,7 +256,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 var message = sortList[index];
 
                 if (message.status.toLowerCase() == 'offline') {
-                  // add internet connection state
                   networkStatus == NetworkStatus.connected
                       ? setMessageStatus(message.id, 'online')
                       : null;

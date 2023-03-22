@@ -4,7 +4,10 @@ import 'package:flutter_chat_research/chat/chat_list/presentation/message_list_p
 import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
+import 'package:flutter_chat_research/core/utils/firebase_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../../auth/models/user.dart';
 
 class ATuChatPage extends ConsumerStatefulWidget {
   const ATuChatPage({super.key});
@@ -24,7 +27,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
         .collection('org')
         .doc('org_id')
         .collection('chats')
-        .where('users', arrayContainsAny: [ref.watch(userProvider).toJson()])
+        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider).id])
         .snapshots()
         .map((event) {
           List<Chat> messageList = [];
@@ -49,6 +52,27 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
             ),
             icon: const Icon(Icons.chat),
           ),
+          IconButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const UserListPage(
+                  chat: Chat(
+                    id: '',
+                    name: '',
+                    photo: '',
+                    isGroup: true,
+                    peerUserId: '',
+                    peerUserName: '',
+                    userIds: [],
+                    adminIds: [],
+                    allUserIds: [],
+                    lastMessage: '',
+                  ),
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.group),
+          ),
         ],
       ),
       body: StreamBuilder<List<Chat>>(
@@ -69,17 +93,17 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
                   (a, b) => a.name.compareTo(b.name),
                 );
                 var chat = sortList[index];
-                debugPrint(chat.toString());
+                // debugPrint('allUserIds Before : $chat');
+
+                // debugPrint('allUserIds After : $chat');
                 return InkWell(
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => MessageListPage(chat: chat),
                   )),
-                  child: ListTile(
-                    leading: CircleAvatar(child: Text((index + 1).toString())),
-                    title: Text(chat.name),
-                    subtitle: Text(chat.id),
-                    // subtitle: Text(chat.messages.last['text']),
-                  ),
+                  child: PeerChatName(
+                      index: index,
+                      chat: chat,
+                      currentUser: ref.watch(userProvider)),
                 );
                 // }
               },
@@ -89,6 +113,55 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
           }
         },
       ),
+    );
+  }
+}
+
+class PeerChatName extends StatefulWidget {
+  const PeerChatName({
+    super.key,
+    required this.index,
+    required this.chat,
+    required this.currentUser,
+  });
+
+  final Chat chat;
+  final User currentUser;
+  final int index;
+
+  @override
+  State<PeerChatName> createState() => _PeerChatNameState();
+}
+
+class _PeerChatNameState extends State<PeerChatName> {
+  @override
+  void initState() {
+    super.initState();
+    getPartnerName();
+  }
+
+  String partnerUserName = '';
+  String firstChar = '';
+
+  getPartnerName() async {
+    for (var element in widget.chat.allUserIds) {
+      if (widget.currentUser.id != element) {
+        await getUser(element).then((value) {
+          if (value != null) {
+            partnerUserName = value.name ?? '';
+          }
+        });
+      }
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: CircleAvatar(child: Text(widget.index.toString())),
+      title: Text(partnerUserName),
+      subtitle: Text(widget.chat.id),
     );
   }
 }

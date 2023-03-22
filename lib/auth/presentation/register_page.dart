@@ -18,8 +18,8 @@ class RegisterPage extends ConsumerStatefulWidget {
 
 class _RegisterPageState extends ConsumerState<RegisterPage> {
   String id = 'id';
-  String name = 'name';
-  String email = 'email';
+  final nameController = TextEditingController();
+  final passwordController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -27,10 +27,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   void setData() {
-    var genString = generateRandomString(2);
+    var genString = generateRandomString(3);
     id = const Uuid().v4();
-    name = genString;
-    email = '$genString@gmail.com';
+    nameController.text = genString;
+    passwordController.text = '123';
     setState(() {});
   }
 
@@ -41,36 +41,43 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         title: const Text('Register'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(id),
-            const SizedBox(height: 8),
-            Text(name),
-            const SizedBox(height: 8),
-            Text(email),
-            const SizedBox(height: 8),
-            OutlinedButton(
-                onPressed: () async {
-                  User user = User(id: id, name: name, email: email, photo: '');
-                  debugPrint(user.toJson().toString());
-                  ref.read(userProvider.notifier).update((state) => user);
-                  saveInLocal(user);
-                  // addUser(user);
-                  // var uid = await readInLocal();
-                  // print('uid : $uid');
-                  // var userinLocal = await getUserInLocal(uid ?? '');
-                  // print('userinLocal : $userinLocal');
-                  addUser(user).then(
-                    (value) => Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const ATuChatPage(),
-                        ),
-                        (route) => false),
-                  );
-                },
-                child: const Text('Register'))
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(hintText: 'Enter your name'),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: passwordController,
+                decoration:
+                    const InputDecoration(hintText: 'Enter your password'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                  onPressed: () async {
+                    User user = User(
+                        id: id,
+                        name: nameController.text,
+                        email: '${nameController.text}@gmail.com',
+                        photo: '');
+                    debugPrint(user.toJson().toString());
+                    ref.read(userProvider.notifier).update((state) => user);
+                    saveInLocal(user);
+                    addUser(user).then(
+                      (value) => Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const ATuChatPage(),
+                          ),
+                          (route) => false),
+                    );
+                  },
+                  child: const Text('Register'))
+            ],
+          ),
         ),
       ),
     );

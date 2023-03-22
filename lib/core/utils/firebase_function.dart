@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
-import 'package:flutter_chat_research/core/utils/storage_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../auth/models/user.dart';
@@ -44,7 +43,7 @@ Future<void> addUserInChat(User user, Chat chat) async {
       .collection('chats')
       .doc(chat.id)
       .update({
-    'users': [...chat.users, user.toJson()]
+    'userIds': [...chat.userIds, user..id]
   });
 }
 
@@ -60,7 +59,6 @@ Future<User?> getUserInLocal(String userId, WidgetRef ref) async {
       var docData = documentSnapshot.data() as Map<String, dynamic>;
       var user = User.fromJson(docData);
       // print('Document data: ${documentSnapshot.data()}');
-      print('userMapData in local : $user');
       ref.read(userProvider.notifier).update((state) => user);
       return user;
     } else {

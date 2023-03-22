@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_research/auth/models/user.dart';
 import 'package:flutter_chat_research/auth/presentation/register_page.dart';
 import 'package:flutter_chat_research/chat/chat_list/presentation/atu_chat_page.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
@@ -133,6 +134,9 @@ class ChatListScreenState extends ConsumerState<ChatListScreen> {
             IconButton(
               onPressed: () {
                 deleteUserTag();
+                ref
+                    .read(userProvider.notifier)
+                    .update((state) => const User(id: ''));
               },
               icon: const Icon(Icons.delete),
             ),
