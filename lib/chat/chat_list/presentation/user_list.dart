@@ -49,6 +49,17 @@ class _UserListPageState extends ConsumerState<UserListPage> {
     // Navigator.of(context).pop();
   }
 
+  Future<void> addChatWithId(Chat chat, String userId) async {
+    await FirebaseFirestore.instance
+        .collection('org')
+        .doc('org_id')
+        .collection('chatUsers')
+        .doc(userId)
+        .collection('chats')
+        .doc(chat.id)
+        .set(chat.toJson());
+  }
+
   Stream<List<User>> getUsers() {
     return FirebaseFirestore.instance
         .collection('org')
@@ -124,7 +135,7 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       allUserIds: [ref.watch(userProvider).id, ...userIds],
                       lastMessage: '',
                     );
-                    addChat(groupChat);
+                    addChat(groupChat).then((value) => Navigator.pop(context));
                   },
                   child: const Text(
                     'Done',
@@ -151,9 +162,23 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                 var user = sortList[index];
                 return InkWell(
                   onTap: () {
-                    Chat peerChat = Chat(
-                      id: const Uuid().v4(),
-                      name: '${ref.watch(userProvider).name} ${user.name}',
+                    final id = const Uuid().v4();
+                    Chat currentUserChat = Chat(
+                      id: id,
+                      name: '${ref.watch(userProvider).name}',
+                      photo: '',
+                      isGroup: false,
+                      peerUserId: ref.watch(userProvider).id,
+                      peerUserName: ref.watch(userProvider).name.toString(),
+                      userIds: [],
+                      adminIds: [ref.watch(userProvider).id, user.id],
+                      allUserIds: [ref.watch(userProvider).id, user.id],
+                      lastMessage: '',
+                    );
+
+                    Chat peerUserChat = Chat(
+                      id: id,
+                      name: user.name.toString(),
                       photo: '',
                       isGroup: false,
                       peerUserId: user.id,
@@ -163,12 +188,15 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       allUserIds: [ref.watch(userProvider).id, user.id],
                       lastMessage: '',
                     );
-                    addChat(peerChat);
-                    Navigator.of(context).pop();
 
-                    // isGroup
-                    //     ? mutiSelectUsers(user)
-                    //     : addChat(peerChat);
+                    isGroup
+                        ? mutiSelectUsers(user)
+                        : {
+                            addChatWithId(currentUserChat, user.id),
+                            addChatWithId(
+                                peerUserChat, ref.watch(userProvider).id),
+                            Navigator.of(context).pop()
+                          };
                   },
                   child: ListTile(
                     leading: CircleAvatar(child: Text((index + 1).toString())),

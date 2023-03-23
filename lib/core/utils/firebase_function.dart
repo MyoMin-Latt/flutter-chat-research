@@ -36,6 +36,24 @@ Future<User?> getUser(String userId) {
   });
 }
 
+Future<User?> getUserWithName(String name) {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('users')
+      .where('name', isEqualTo: name)
+      .get()
+      .then((documentSnapshot) {
+    if (documentSnapshot.docs.isNotEmpty) {
+      var docData = documentSnapshot.docs[0].data();
+      var userMapData = User.fromJson(docData);
+      return userMapData;
+    } else {
+      return null;
+    }
+  });
+}
+
 Future<void> addUserInChat(User user, Chat chat) async {
   await FirebaseFirestore.instance
       .collection('org')

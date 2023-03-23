@@ -19,10 +19,8 @@ import 'atu_chat_page.dart';
 
 class MessageListPage extends ConsumerStatefulWidget {
   final Chat chat;
-  final String chatName;
   const MessageListPage({
     super.key,
-    required this.chatName,
     required this.chat,
   });
 
@@ -214,7 +212,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.chatName),
+        title: Text(widget.chat.name),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(

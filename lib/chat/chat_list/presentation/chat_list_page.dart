@@ -133,10 +133,10 @@ class ChatListScreenState extends ConsumerState<ChatListScreen> {
           actions: [
             IconButton(
               onPressed: () {
-                deleteUserTag();
-                ref
-                    .read(userProvider.notifier)
-                    .update((state) => const User(id: ''));
+                // deleteUserTag();
+                // ref
+                //     .read(userProvider.notifier)
+                //     .update((state) => const User(id: ''));
               },
               icon: const Icon(Icons.delete),
             ),

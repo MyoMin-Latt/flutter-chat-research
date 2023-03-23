@@ -65,15 +65,32 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         email: '${nameController.text}@gmail.com',
                         photo: '');
                     debugPrint(user.toJson().toString());
-                    ref.read(userProvider.notifier).update((state) => user);
-                    saveInLocal(user);
-                    addUser(user).then(
-                      (value) => Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (context) => const ATuChatPage(),
-                          ),
-                          (route) => false),
-                    );
+
+                    getUserWithName(nameController.text).then((value) async {
+                      if (value != null) {
+                        ref
+                            .read(userProvider.notifier)
+                            .update((state) => value);
+                        await saveInLocal(value);
+
+                        // ignore: use_build_context_synchronously
+                        Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (context) => const ATuChatPage(),
+                            ),
+                            (route) => false);
+                      } else {
+                        ref.read(userProvider.notifier).update((state) => user);
+                        await saveInLocal(user);
+                        addUser(user).then(
+                          (val) => Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => const ATuChatPage(),
+                              ),
+                              (route) => false),
+                        );
+                      }
+                    });
                   },
                   child: const Text('Register'))
             ],
