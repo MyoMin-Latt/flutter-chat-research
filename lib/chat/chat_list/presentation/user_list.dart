@@ -54,6 +54,7 @@ class _UserListPageState extends ConsumerState<UserListPage> {
         .collection('org')
         .doc('org_id')
         .collection('users')
+        .where('id', isNotEqualTo: ref.watch(userProvider).id)
         .snapshots()
         .map((event) {
       List<User> userList = [];

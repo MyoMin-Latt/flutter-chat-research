@@ -96,14 +96,10 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
                 // debugPrint('allUserIds Before : $chat');
 
                 // debugPrint('allUserIds After : $chat');
-                return InkWell(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => MessageListPage(chat: chat),
-                  )),
-                  child: PeerChatName(
-                      index: index,
-                      chat: chat,
-                      currentUser: ref.watch(userProvider)),
+                return PeerChatName(
+                  index: index,
+                  chat: chat,
+                  currentUser: ref.watch(userProvider),
                 );
                 // }
               },
@@ -140,17 +136,21 @@ class _PeerChatNameState extends State<PeerChatName> {
     getPartnerName();
   }
 
-  String partnerUserName = '';
+  String chatName = '';
   String firstChar = '';
 
   getPartnerName() async {
-    for (var element in widget.chat.allUserIds) {
-      if (widget.currentUser.id != element) {
-        await getUser(element).then((value) {
-          if (value != null) {
-            partnerUserName = value.name ?? '';
-          }
-        });
+    if (widget.chat.allUserIds[0] == widget.chat.allUserIds[1]) {
+      chatName = 'My Note';
+    } else {
+      for (var element in widget.chat.allUserIds) {
+        if (widget.currentUser.id != element) {
+          await getUser(element).then((value) {
+            if (value != null) {
+              chatName = value.name ?? '';
+            }
+          });
+        }
       }
       setState(() {});
     }
@@ -158,10 +158,18 @@ class _PeerChatNameState extends State<PeerChatName> {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: CircleAvatar(child: Text(widget.index.toString())),
-      title: Text(partnerUserName),
-      subtitle: Text(widget.chat.id),
+    return InkWell(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => MessageListPage(
+          chat: widget.chat,
+          chatName: chatName,
+        ),
+      )),
+      child: ListTile(
+        leading: CircleAvatar(child: Text(widget.index.toString())),
+        title: Text(chatName),
+        subtitle: Text(widget.chat.id),
+      ),
     );
   }
 }

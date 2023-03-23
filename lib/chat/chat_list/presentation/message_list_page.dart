@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
-import 'package:flutter_chat_research/core/utils/firebase_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart';
@@ -20,8 +19,10 @@ import 'atu_chat_page.dart';
 
 class MessageListPage extends ConsumerStatefulWidget {
   final Chat chat;
+  final String chatName;
   const MessageListPage({
     super.key,
+    required this.chatName,
     required this.chat,
   });
 
@@ -30,7 +31,6 @@ class MessageListPage extends ConsumerStatefulWidget {
 }
 
 class _MessageListState extends ConsumerState<MessageListPage> {
-  User? peerUser;
   final controller = ScrollController();
   bool jump = true;
   Stream<List<Message>> getMessage() {
@@ -88,11 +88,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   @override
   void initState() {
     super.initState();
-    getUser(widget.chat.peerUserId).then((value) {
-      setState(() {
-        peerUser = value;
-      });
-    });
 
     FirebaseFirestore.instance
         .collection('org')
@@ -164,11 +159,17 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   void onChangeData(
       List<DocumentChange<Map<String, dynamic>>> documentChanges) {
     var isChange = false;
+    List<Message> setProducts = products.toSet().toList();
+    products.clear();
+    products = setProducts;
+    _streamController.add(setProducts);
     documentChanges.forEach((productChange) {
       if (productChange.type == DocumentChangeType.removed) {
+        // print('onchange : before removed : $products');
         products.removeWhere((product) {
           return productChange.doc.id == product.id;
         });
+        // print('onchange : after removed : $products');
         isChange = true;
       } else {
         if (productChange.type == DocumentChangeType.modified) {
@@ -176,11 +177,15 @@ class _MessageListState extends ConsumerState<MessageListPage> {
             return productChange.doc.id == product.id;
           });
           if (indexWhere >= 0) {
+            // print('onchange : before modified : $products');
             products[indexWhere] = Message.fromJson(productChange.doc.data()!);
+            // print('onchange : after modified : $products');
           }
           isChange = true;
         } else if (productChange.type == DocumentChangeType.added) {
+          // print('onchange : before added : $products');
           products.add(Message.fromJson(documentChanges[0].doc.data()!));
+          // print('onchange : after added : $products');
           isChange = true;
           if (mounted) {
             var msg = Message.fromJson(productChange.doc.data()!);
@@ -197,7 +202,9 @@ class _MessageListState extends ConsumerState<MessageListPage> {
     });
     if (isChange) {
       List<Message> setProducts = products.toSet().toList();
-      _streamController.add(setProducts);
+      products.clear();
+      products = setProducts;
+      _streamController.add(products);
     }
   }
 
@@ -207,7 +214,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(peerUser?.name ?? ''),
+        title: Text(widget.chatName),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
