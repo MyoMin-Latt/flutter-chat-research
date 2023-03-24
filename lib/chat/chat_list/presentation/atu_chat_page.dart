@@ -24,13 +24,29 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
     super.initState();
   }
 
-  Stream<List<Chat>> getChats() {
+  Stream<List<Chat>> getPeerChats() {
     return FirebaseFirestore.instance
         .collection('org')
         .doc('org_id')
         .collection('chatUsers')
         .doc(ref.watch(userProvider).id)
         .collection('chats')
+        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider).id])
+        .snapshots()
+        .map((event) {
+          List<Chat> messageList = [];
+          for (var element in event.docs) {
+            messageList.add(Chat.fromJson(element.data()));
+          }
+          return messageList;
+        });
+  }
+
+  Stream<List<Chat>> getGroupChats() {
+    return FirebaseFirestore.instance
+        .collection('org')
+        .doc('org_id')
+        .collection('groupChats')
         .where('allUserIds', arrayContainsAny: [ref.watch(userProvider).id])
         .snapshots()
         .map((event) {
@@ -93,100 +109,93 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
           ),
         ],
       ),
-      body: StreamBuilder<List<Chat>>(
-        stream: getChats(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Loader();
-          }
-          if (snapshot.hasData) {
-            if (snapshot.data!.isEmpty) {
-              return const NoData();
-            }
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                var sortList = snapshot.data!;
-                sortList.sort(
-                  (a, b) => a.name.compareTo(b.name),
-                );
-                var chat = sortList[index];
-                return InkWell(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => MessageListPage(
-                      chat: chat,
-                    ),
-                  )),
-                  child: ListTile(
-                    leading: CircleAvatar(child: Text(index.toString())),
-                    title: Text(chat.name),
-                    subtitle: Text(chat.id),
-                  ),
-                );
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            StreamBuilder<List<Chat>>(
+              stream: getGroupChats(),
+              builder: (context, snapshot) {
+                // if (snapshot.connectionState == ConnectionState.waiting) {
+                //   return const Loader();
+                // }
+                if (snapshot.hasData) {
+                  if (snapshot.data!.isEmpty) {
+                    return const NoData();
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      var sortList = snapshot.data!;
+                      sortList.sort(
+                        (a, b) => a.name.compareTo(b.name),
+                      );
+                      var chat = sortList[index];
+                      return InkWell(
+                        onTap: () =>
+                            Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => MessageListPage(
+                            chat: chat,
+                          ),
+                        )),
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text(index.toString())),
+                          title: chat.isGroup
+                              ? Text(chat.name)
+                              : Text(chat.peerUserName),
+                          subtitle: Text(chat.id),
+                        ),
+                      );
+                    },
+                  );
+                } else {
+                  return const Loader();
+                }
               },
-            );
-          } else {
-            return const Loader();
-          }
-        },
-      ),
-    );
-  }
-}
-
-class PeerChatName extends StatefulWidget {
-  const PeerChatName({
-    super.key,
-    required this.index,
-    required this.chat,
-    required this.currentUser,
-  });
-
-  final Chat chat;
-  final User currentUser;
-  final int index;
-
-  @override
-  State<PeerChatName> createState() => _PeerChatNameState();
-}
-
-class _PeerChatNameState extends State<PeerChatName> {
-  @override
-  void initState() {
-    super.initState();
-    getPartnerName();
-  }
-
-  String chatName = '';
-  String firstChar = '';
-
-  getPartnerName() async {
-    if (widget.chat.allUserIds[0] == widget.chat.allUserIds[1]) {
-      chatName = 'My Note';
-    } else {
-      for (var element in widget.chat.allUserIds) {
-        if (widget.currentUser.id != element) {
-          await getUser(element).then((value) {
-            if (value != null) {
-              chatName = value.name ?? '';
-            }
-          });
-        }
-      }
-      setState(() {});
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => MessageListPage(chat: widget.chat),
-      )),
-      child: ListTile(
-        leading: CircleAvatar(child: Text(widget.index.toString())),
-        title: widget.chat.isGroup ? Text(widget.chat.name) : Text(chatName),
-        subtitle: Text(widget.chat.id),
+            ),
+            StreamBuilder<List<Chat>>(
+              stream: getPeerChats(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Loader();
+                }
+                if (snapshot.hasData) {
+                  if (snapshot.data!.isEmpty) {
+                    return const NoData();
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      var sortList = snapshot.data!;
+                      sortList.sort(
+                        (a, b) => a.name.compareTo(b.name),
+                      );
+                      var chat = sortList[index];
+                      return InkWell(
+                        onTap: () =>
+                            Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => MessageListPage(
+                            chat: chat,
+                          ),
+                        )),
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text(index.toString())),
+                          title: chat.isGroup
+                              ? Text(chat.name)
+                              : Text(chat.peerUserName),
+                          subtitle: Text(chat.id),
+                        ),
+                      );
+                    },
+                  );
+                } else {
+                  return const Loader();
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

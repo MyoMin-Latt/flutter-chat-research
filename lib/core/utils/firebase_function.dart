@@ -85,3 +85,28 @@ Future<User?> getUserInLocal(String userId, WidgetRef ref) async {
     }
   });
 }
+
+Future<Chat?> getPeerChat(String userId, String peerUserId) {
+  print('getPeerChat : start');
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('chatUsers')
+      .doc(userId)
+      .collection('chats')
+      .where('peerUserId', isEqualTo: peerUserId)
+      .get()
+      .then((documentSnapshot) {
+    print('getPeerChat : ${documentSnapshot.docs.length}');
+    if (documentSnapshot.docs.isNotEmpty) {
+      var docData = documentSnapshot.docs[0].data();
+      var chat = Chat.fromJson(docData);
+      // print('Document data: ${documentSnapshot.data()}');
+      print('getPeerChat data: $chat');
+      return chat;
+    } else {
+      // print('Document does not exist on the database');
+      return null;
+    }
+  });
+}

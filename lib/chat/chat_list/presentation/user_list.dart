@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_research/chat/chat_list/presentation/message_list_page.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -56,6 +57,15 @@ class _UserListPageState extends ConsumerState<UserListPage> {
         .collection('chatUsers')
         .doc(userId)
         .collection('chats')
+        .doc(chat.id)
+        .set(chat.toJson());
+  }
+
+  Future<void> addGroupChat(Chat chat) async {
+    await FirebaseFirestore.instance
+        .collection('org')
+        .doc('org_id')
+        .collection('groupChats')
         .doc(chat.id)
         .set(chat.toJson());
   }
@@ -135,12 +145,11 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       allUserIds: [ref.watch(userProvider).id, ...userIds],
                       lastMessage: '',
                     );
-                    addChat(groupChat).then((value) => Navigator.pop(context));
+                    addGroupChat(groupChat)
+                        .then((value) => Navigator.pop(context));
                   },
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child:
+                      const Text('Done', style: TextStyle(color: Colors.white)),
                 )
               : const SizedBox()
         ],
@@ -192,10 +201,25 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                     isGroup
                         ? mutiSelectUsers(user)
                         : {
-                            addChatWithId(currentUserChat, user.id),
-                            addChatWithId(
-                                peerUserChat, ref.watch(userProvider).id),
-                            Navigator.of(context).pop()
+                            getPeerChat(ref.watch(userProvider).id, user.id)
+                                .then((value) {
+                              if (value == null) {
+                                addChatWithId(currentUserChat, user.id);
+                                addChatWithId(
+                                    peerUserChat, ref.watch(userProvider).id);
+                                Navigator.of(context)
+                                    .pushReplacement(MaterialPageRoute(
+                                  builder: (context) =>
+                                      MessageListPage(chat: peerUserChat),
+                                ));
+                              } else {
+                                Navigator.of(context)
+                                    .pushReplacement(MaterialPageRoute(
+                                  builder: (context) =>
+                                      MessageListPage(chat: value),
+                                ));
+                              }
+                            })
                           };
                   },
                   child: ListTile(

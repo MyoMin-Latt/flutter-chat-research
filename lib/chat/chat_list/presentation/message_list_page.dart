@@ -31,7 +31,7 @@ class MessageListPage extends ConsumerStatefulWidget {
 class _MessageListState extends ConsumerState<MessageListPage> {
   final controller = ScrollController();
   bool jump = true;
-  Stream<List<Message>> getMessage() {
+  Stream<List<Message>> streamMessage() {
     return FirebaseFirestore.instance
         .collection('org')
         .doc('org_id')
@@ -212,7 +212,9 @@ class _MessageListState extends ConsumerState<MessageListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.chat.name),
+        title: widget.chat.isGroup
+            ? Text(widget.chat.name)
+            : Text(widget.chat.peerUserName),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
