@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_research/auth/models/user.dart';
 import 'package:flutter_chat_research/auth/presentation/register_page.dart';
 import 'package:flutter_chat_research/chat/chat_list/presentation/atu_chat_page.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
@@ -161,7 +160,7 @@ class ChatListScreenState extends ConsumerState<ChatListScreen> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => ref.watch(userProvider).id.isEmpty
+            builder: (context) => ref.watch(userProvider)!.id.isEmpty
                 ? const RegisterPage()
                 : const ATuChatPage(),
           )),

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_research/chat/chat_list/presentation/message_list_page.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -9,6 +8,7 @@ import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:flutter_chat_research/core/utils/firebase_function.dart';
 
 import '../../../auth/models/user.dart';
+import 'message_list_page.dart';
 
 class UserListPage extends ConsumerStatefulWidget {
   final Chat? chat;
@@ -50,17 +50,6 @@ class _UserListPageState extends ConsumerState<UserListPage> {
     // Navigator.of(context).pop();
   }
 
-  Future<void> addChatWithId(Chat chat, String userId) async {
-    await FirebaseFirestore.instance
-        .collection('org')
-        .doc('org_id')
-        .collection('chatUsers')
-        .doc(userId)
-        .collection('chats')
-        .doc(chat.id)
-        .set(chat.toJson());
-  }
-
   Future<void> addGroupChat(Chat chat) async {
     await FirebaseFirestore.instance
         .collection('org')
@@ -75,7 +64,7 @@ class _UserListPageState extends ConsumerState<UserListPage> {
         .collection('org')
         .doc('org_id')
         .collection('users')
-        .where('id', isNotEqualTo: ref.watch(userProvider).id)
+        .where('id', isNotEqualTo: ref.watch(userProvider)!.id)
         .snapshots()
         .map((event) {
       List<User> userList = [];
@@ -129,7 +118,7 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                     List<String?> gpName = [];
                     for (var element in userList) {
                       gpName.add(element.name);
-                      if (ref.watch(userProvider).id != element.id) {
+                      if (ref.watch(userProvider)!.id != element.id) {
                         userIds.add(element.id);
                       }
                     }
@@ -141,8 +130,8 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       peerUserId: '',
                       peerUserName: '',
                       userIds: [...userIds],
-                      adminIds: [ref.watch(userProvider).id],
-                      allUserIds: [ref.watch(userProvider).id, ...userIds],
+                      adminIds: [ref.watch(userProvider)!.id],
+                      allUserIds: [ref.watch(userProvider)!.id, ...userIds],
                       lastMessage: '',
                     );
                     addGroupChat(groupChat)
@@ -166,66 +155,89 @@ class _UserListPageState extends ConsumerState<UserListPage> {
               itemBuilder: (context, index) {
                 var sortList = snapshot.data!;
                 sortList.sort(
-                  (a, b) => a.name!.compareTo(b.name!),
+                  (a, b) => a.name.compareTo(b.name),
                 );
                 var user = sortList[index];
                 return InkWell(
                   onTap: () {
-                    final id = const Uuid().v4();
-                    Chat currentUserChat = Chat(
-                      id: id,
-                      name: '${ref.watch(userProvider).name}',
-                      photo: '',
-                      isGroup: false,
-                      peerUserId: ref.watch(userProvider).id,
-                      peerUserName: ref.watch(userProvider).name.toString(),
-                      userIds: [],
-                      adminIds: [ref.watch(userProvider).id, user.id],
-                      allUserIds: [ref.watch(userProvider).id, user.id],
-                      lastMessage: '',
-                    );
+                    getPeerChat(
+                      ref.watch(userProvider)!.id,
+                      user.id,
+                    ).then((value) {
+                      if (value == null) {
+                        Navigator.of(context).pushReplacement(MaterialPageRoute(
+                          builder: (context) => MessageListPage(
+                              chat: Chat(
+                            id: const Uuid().v4(),
+                            name: user.name,
+                            photo: '',
+                            isGroup: isGroup,
+                            peerUserId: user.id,
+                            peerUserName: user.name,
+                            userIds: [],
+                            adminIds: [],
+                            allUserIds: [],
+                            lastMessage: '',
+                          )),
+                        ));
+                      } else {
+                        Navigator.of(context).pushReplacement(MaterialPageRoute(
+                            builder: (context) => MessageListPage(
+                                  chat: value,
+                                )));
+                      }
+                    });
 
-                    Chat peerUserChat = Chat(
-                      id: id,
-                      name: user.name.toString(),
-                      photo: '',
-                      isGroup: false,
-                      peerUserId: user.id,
-                      peerUserName: user.name ?? '',
-                      userIds: [],
-                      adminIds: [ref.watch(userProvider).id, user.id],
-                      allUserIds: [ref.watch(userProvider).id, user.id],
-                      lastMessage: '',
-                    );
+                    // final id = const Uuid().v4();
+                    // Chat currentUserChat = Chat(
+                    //   id: id,
+                    //   name: '${ref.watch(userProvider).name}',
+                    //   photo: '',
+                    //   isGroup: false,
+                    //   peerUserId: ref.watch(userProvider).id,
+                    //   peerUserName: ref.watch(userProvider).name.toString(),
+                    //   userIds: [],
+                    //   adminIds: [ref.watch(userProvider).id, user.id],
+                    //   allUserIds: [ref.watch(userProvider).id, user.id],
+                    //   lastMessage: '',
+                    // );
 
-                    isGroup
-                        ? mutiSelectUsers(user)
-                        : {
-                            getPeerChat(ref.watch(userProvider).id, user.id)
-                                .then((value) {
-                              if (value == null) {
-                                addChatWithId(currentUserChat, user.id);
-                                addChatWithId(
-                                    peerUserChat, ref.watch(userProvider).id);
-                                Navigator.of(context)
-                                    .pushReplacement(MaterialPageRoute(
-                                  builder: (context) =>
-                                      MessageListPage(chat: peerUserChat),
-                                ));
-                              } else {
-                                Navigator.of(context)
-                                    .pushReplacement(MaterialPageRoute(
-                                  builder: (context) =>
-                                      MessageListPage(chat: value),
-                                ));
-                              }
-                            })
-                          };
+                    // Chat peerUserChat = Chat(
+                    //   id: id,
+                    //   name: user.name.toString(),
+                    //   photo: '',
+                    //   isGroup: false,
+                    //   peerUserId: user.id,
+                    //   peerUserName: user.name ?? '',
+                    //   userIds: [],
+                    //   adminIds: [ref.watch(userProvider).id, user.id],
+                    //   allUserIds: [ref.watch(userProvider).id, user.id],
+                    //   lastMessage: '',
+                    // );
+
+                    // getPeerChat(user.id);
+
+                    // isGroup
+                    //     ? mutiSelectUsers(user)
+                    //     : {
+                    //         addChatWithId(currentUserChat, user.id),
+                    //         addChatWithId(
+                    //             peerUserChat, ref.watch(userProvider).id),
+                    //         Navigator.of(context)
+                    //             .pushReplacement(MaterialPageRoute(
+                    //           builder: (context) =>
+                    //               MessageListPage(chat: peerUserChat),
+                    //         ))
+                    //         // Navigator.of(context).push(MaterialPageRoute(
+                    //         //   builder: (context) =>
+                    //         //       MessageListPage(chat: peerUserChat),
+                    //         // ))
+                    //       };
                   },
                   child: ListTile(
                     leading: CircleAvatar(child: Text((index + 1).toString())),
-                    title: Text(user.name!),
-                    subtitle: Text(user.email!),
+                    title: Text(user.name),
+                    subtitle: Text(user.email),
                     trailing:
                         userList.contains(user) ? const Icon(Icons.done) : null,
                   ),

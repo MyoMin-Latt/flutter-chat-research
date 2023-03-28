@@ -1,7 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_research/auth/models/models.dart';
-import 'package:flutter_chat_research/chat/feat_chat.dart';
 import 'package:flutter_chat_research/core/utils/utils.dart';
 import 'package:flutter_chat_research/firebase_options.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -50,7 +48,7 @@ class MyAppState extends ConsumerState<MyApp> {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: ref.watch(userProvider).name == null
+      home: ref.watch(userProvider) == null
           ? const RegisterPage()
           : const ATuChatPage(),
     );

@@ -5,10 +5,8 @@ import 'package:flutter_chat_research/chat/chat_list/presentation/message_list_p
 import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
-import 'package:flutter_chat_research/core/utils/firebase_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../auth/models/user.dart';
 import '../../../core/utils/onesignal/onesignal.dart';
 
 class ATuChatPage extends ConsumerStatefulWidget {
@@ -29,9 +27,9 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
         .collection('org')
         .doc('org_id')
         .collection('chatUsers')
-        .doc(ref.watch(userProvider).id)
+        .doc(ref.watch(userProvider)!.id)
         .collection('chats')
-        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider).id])
+        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider)!.id])
         .snapshots()
         .map((event) {
           List<Chat> messageList = [];
@@ -47,7 +45,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
         .collection('org')
         .doc('org_id')
         .collection('groupChats')
-        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider).id])
+        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider)!.id])
         .snapshots()
         .map((event) {
           List<Chat> messageList = [];
@@ -62,7 +60,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(ref.watch(userProvider).name.toString()),
+        title: Text(ref.watch(userProvider)!.name.toString()),
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).push(
@@ -96,9 +94,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
           IconButton(
             onPressed: () {
               deleteUserTag();
-              ref
-                  .read(userProvider.notifier)
-                  .update((state) => const User(id: ''));
+              ref.read(userProvider.notifier).update((state) => null);
               Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) => const RegisterPage(),

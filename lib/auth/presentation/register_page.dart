@@ -60,10 +60,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               OutlinedButton(
                   onPressed: () async {
                     User user = User(
-                        id: id,
-                        name: nameController.text,
-                        email: '${nameController.text}@gmail.com',
-                        photo: '');
+                      id: id,
+                      name: nameController.text,
+                      email: '${nameController.text}@gmail.com',
+                      photo: '',
+                      isOnline: false,
+                      phone: '',
+                    );
                     debugPrint(user.toJson().toString());
 
                     getUserWithName(nameController.text).then((value) async {

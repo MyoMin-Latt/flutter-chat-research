@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -87,7 +88,9 @@ Future<User?> getUserInLocal(String userId, WidgetRef ref) async {
 }
 
 Future<Chat?> getPeerChat(String userId, String peerUserId) {
-  print('getPeerChat : start');
+  debugPrint('getPeerChat : start');
+  debugPrint('getPeerChat : $userId, $peerUserId');
+
   return FirebaseFirestore.instance
       .collection('org')
       .doc('org_id')
@@ -101,12 +104,22 @@ Future<Chat?> getPeerChat(String userId, String peerUserId) {
     if (documentSnapshot.docs.isNotEmpty) {
       var docData = documentSnapshot.docs[0].data();
       var chat = Chat.fromJson(docData);
-      // print('Document data: ${documentSnapshot.data()}');
       print('getPeerChat data: $chat');
       return chat;
     } else {
-      // print('Document does not exist on the database');
+      // print('getPeerChat does not exist on the database');
       return null;
     }
   });
+}
+
+Future<void> addChatWithId(Chat chat, String userId) async {
+  await FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('chatUsers')
+      .doc(userId)
+      .collection('chats')
+      .doc(chat.id)
+      .set(chat.toJson());
 }

@@ -13,19 +13,21 @@ class User with _$User {
   const User._();
   const factory User({
     required String id,
-    String? email,
-    String? name,
-    String? photo,
+    required String name,
+    required String email,
+    required String phone,
+    required String photo,
+    required bool isOnline,
   }) = _User;
 
   /// Empty user which represents an unauthenticated user.
-  static const empty = User(id: '');
+  // static const empty = User(id: '');
 
   /// Convenience getter to determine whether the current user is empty.
-  bool get isEmpty => this == User.empty;
+  // bool get isEmpty => this == User.empty;
 
   /// Convenience getter to determine whether the current user is not empty.
-  bool get isNotEmpty => this != User.empty;
+  // bool get isNotEmpty => this != User.empty;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 }

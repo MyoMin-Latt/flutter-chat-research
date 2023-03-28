@@ -245,8 +245,8 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 peerUserId: currentUser.id,
                 peerUserName: currentUser.name,
                 userIds: [],
-                adminIds: [currentUser.id, widget.chat.peerUserId],
-                allUserIds: [currentUser.id, widget.chat.peerUserId],
+                adminIds: [currentUser.id, widget.chat.id],
+                allUserIds: [currentUser.id, widget.chat.id],
                 lastMessage: '',
               );
 
@@ -255,11 +255,11 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 name: widget.chat.name.toString(),
                 photo: '',
                 isGroup: false,
-                peerUserId: widget.chat.peerUserId,
-                peerUserName: widget.chat.peerUserName,
+                peerUserId: widget.chat.id,
+                peerUserName: widget.chat.name,
                 userIds: [],
-                adminIds: [currentUser.id, widget.chat.peerUserId],
-                allUserIds: [currentUser.id, widget.chat.peerUserId],
+                adminIds: [currentUser.id, widget.chat.id],
+                allUserIds: [currentUser.id, widget.chat.id],
                 lastMessage: '',
               );
 
