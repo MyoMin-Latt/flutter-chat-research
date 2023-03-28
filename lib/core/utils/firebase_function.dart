@@ -100,14 +100,11 @@ Future<Chat?> getPeerChat(String userId, String peerUserId) {
       .where('peerUserId', isEqualTo: peerUserId)
       .get()
       .then((documentSnapshot) {
-    print('getPeerChat : ${documentSnapshot.docs.length}');
     if (documentSnapshot.docs.isNotEmpty) {
       var docData = documentSnapshot.docs[0].data();
       var chat = Chat.fromJson(docData);
-      print('getPeerChat data: $chat');
       return chat;
     } else {
-      // print('getPeerChat does not exist on the database');
       return null;
     }
   });
@@ -120,6 +117,15 @@ Future<void> addChatWithId(Chat chat, String userId) async {
       .collection('chatUsers')
       .doc(userId)
       .collection('chats')
+      .doc(chat.id)
+      .set(chat.toJson());
+}
+
+Future<void> addGroupChat(Chat chat) async {
+  await FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('groupChats')
       .doc(chat.id)
       .set(chat.toJson());
 }

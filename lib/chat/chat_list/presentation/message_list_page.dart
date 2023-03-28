@@ -262,9 +262,12 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 allUserIds: [currentUser.id, widget.chat.peerUserId],
                 lastMessage: '',
               );
-
-              addChatWithId(currentUserChat, widget.chat.id);
-              addChatWithId(peerUserChat, currentUser.id);
+              widget.chat.isGroup
+                  ? addGroupChat(widget.chat)
+                  : {
+                      addChatWithId(currentUserChat, widget.chat.peerUserId),
+                      addChatWithId(peerUserChat, currentUser.id)
+                    };
               sendMessage(message);
             },
             icon: const Icon(Icons.send),
