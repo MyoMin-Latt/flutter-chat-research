@@ -16,6 +16,7 @@ import '../../../core/share/core_provider.dart';
 import '../../../core/utils/firebase_function.dart';
 import '../../models/message.dart';
 import '../../share/chat_provider.dart';
+import 'message_detail_page.dart';
 
 class MessageListPage extends ConsumerStatefulWidget {
   final Chat chat;
@@ -31,6 +32,10 @@ class MessageListPage extends ConsumerStatefulWidget {
 class _MessageListState extends ConsumerState<MessageListPage> {
   final controller = ScrollController();
   bool jump = true;
+  final _streamController = StreamController<List<Message>>();
+  List<Message> products = [];
+  DocumentSnapshot<Object?>? _docSnapshot;
+
   Stream<List<Message>> getMessage() {
     return FirebaseFirestore.instance
         .collection('org')
@@ -79,36 +84,14 @@ class _MessageListState extends ConsumerState<MessageListPage> {
     });
   }
 
-  final _streamController = StreamController<List<Message>>();
-  List<Message> products = [];
-  DocumentSnapshot<Object?>? _docSnapshot;
-
-  @override
-  void initState() {
-    super.initState();
-
-    FirebaseFirestore.instance
+  Future<void> addReceiverId(Message message, String userId) async {
+    await FirebaseFirestore.instance
         .collection('org')
         .doc('org_id')
         .collection('messages')
-        .where('chatId', isEqualTo: widget.chat.id)
-        .snapshots()
-        .listen((data) {
-      debugPrint('Firebase listen : start');
-      if (products.isEmpty) {
-        debugPrint('products empty : true');
-        requestPage();
-      } else {
-        jump = false;
-        onChangeData(data.docChanges);
-      }
-    });
-
-    controller.addListener(() {
-      if (controller.position.minScrollExtent == controller.offset) {
-        setState(() => jump = false);
-        requestPage();
-      }
+        .doc(message.id)
+        .update({
+      'receiverIds': [...message.receiverIds, userId]
     });
   }
 
@@ -207,6 +190,35 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    FirebaseFirestore.instance
+        .collection('org')
+        .doc('org_id')
+        .collection('messages')
+        .where('chatId', isEqualTo: widget.chat.id)
+        .snapshots()
+        .listen((data) {
+      debugPrint('Firebase listen : start');
+      if (products.isEmpty) {
+        debugPrint('products empty : true');
+        requestPage();
+      } else {
+        jump = false;
+        onChangeData(data.docChanges);
+      }
+    });
+
+    controller.addListener(() {
+      if (controller.position.minScrollExtent == controller.offset) {
+        setState(() => jump = false);
+        requestPage();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     var networkStatus = ref.watch(networkStatusProvider);
 
@@ -216,12 +228,17 @@ class _MessageListState extends ConsumerState<MessageListPage> {
             ? Text(widget.chat.name)
             : Text(widget.chat.peerUserName),
         actions: [
-          IconButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => UserListPage(chat: widget.chat),
-            )),
-            icon: const Icon(Icons.person_add),
-          ),
+          widget.chat.isGroup
+              ? IconButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          UserListPage(chat: widget.chat, addUser: 'adduser'),
+                    ),
+                  ),
+                  icon: const Icon(Icons.person_add),
+                )
+              : const SizedBox(),
           IconButton(
             onPressed: () {
               var text = generateRandomString(7);
@@ -230,7 +247,9 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 chatId: widget.chat.id,
                 id: const Uuid().v4(),
                 senderId: currentUser.id,
-                receiverIds: [widget.chat.peerUserId],
+                receiverIds: widget.chat.isGroup
+                    ? [currentUser.id]
+                    : [widget.chat.peerUserId],
                 text: text,
                 sendOn: DateTime.now(),
                 status: 'offline',
@@ -304,6 +323,11 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                   networkStatus == NetworkStatus.connected
                       ? setMessageStatus(message.id, 'seen')
                       : null;
+                } else if (!message.receiverIds
+                    .contains(ref.watch(userProvider)!.id)) {
+                  networkStatus == NetworkStatus.connected
+                      ? addReceiverId(message, ref.watch(userProvider)!.id)
+                      : null;
                 }
 
                 var date =
@@ -335,27 +359,32 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                           ),
                         ),
                       )
-                    : Align(
-                        alignment: Alignment.centerLeft,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width - 45,
-                            minWidth: 70,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '$index. ${message.text}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  date,
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ],
+                    : InkWell(
+                        onTap: () {
+                          messageDetial(context, message);
+                        },
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width - 45,
+                              minWidth: 70,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$index. ${message.text}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  Text(
+                                    date,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -369,6 +398,25 @@ class _MessageListState extends ConsumerState<MessageListPage> {
             );
           }
         },
+      ),
+    );
+  }
+
+  Future<void> messageDetial(BuildContext context, Message message) {
+    return showModalBottomSheet<void>(
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+              color: Colors.white),
+          child: MessageDetailPage(message, controller),
+        ),
       ),
     );
   }

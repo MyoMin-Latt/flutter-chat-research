@@ -33,12 +33,14 @@ class MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    getUser();
+    getUserForAuth();
   }
 
-  Future<void> getUser() async {
+  Future<void> getUserForAuth() async {
     var userId = await readInLocal();
-    await getUserInLocal(userId ?? '', ref);
+    // await getUserInLocal(userId ?? '', ref);
+    getUser(userId ?? '').then(
+        (value) => ref.read(userProvider.notifier).update((state) => value));
   }
 
   @override

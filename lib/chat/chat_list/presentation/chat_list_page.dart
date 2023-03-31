@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chat_research/auth/presentation/register_page.dart';
 import 'package:flutter_chat_research/chat/chat_list/presentation/atu_chat_page.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
-import 'package:flutter_chat_research/core/utils/firebase_function.dart';
-import 'package:flutter_chat_research/core/utils/storage_function.dart';
 import 'package:flutter_chat_research/core/utils/utils.dart';
 import 'package:flutter_chat_research/core/widgets/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -98,16 +96,16 @@ class ChatListScreenState extends ConsumerState<ChatListScreen> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    getUser();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   getUser();
+  // }
 
-  Future<void> getUser() async {
-    var userId = await readInLocal();
-    getUserInLocal(userId ?? '', ref);
-  }
+  // Future<void> getUser() async {
+  //   var userId = await readInLocal();
+  //   getUserInLocal(userId ?? '', ref);
+  // }
 
   @override
   Widget build(BuildContext context) {

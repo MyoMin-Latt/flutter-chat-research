@@ -16,53 +16,37 @@ Future<void> addUser(User user) async {
       .set(user.toJson());
 }
 
-Future<User?> getUser(String userId) {
+// get users
+Stream<List<User>> getUsers(List<String> groupUserIds, String currentUserId) {
+  if (groupUserIds.isEmpty) {
+    return FirebaseFirestore.instance
+        .collection('org')
+        .doc('org_id')
+        .collection('users')
+        .where('id', isNotEqualTo: currentUserId)
+        .snapshots()
+        .map((event) {
+      List<User> userList = [];
+      for (var element in event.docs) {
+        userList.add(User.fromJson(element.data()));
+      }
+      return userList;
+    });
+  }
+
   return FirebaseFirestore.instance
       .collection('org')
       .doc('org_id')
       .collection('users')
-      .doc(userId)
-      .get()
-      .then((DocumentSnapshot documentSnapshot) {
-    if (documentSnapshot.exists) {
-      var docData = documentSnapshot.data() as Map<String, dynamic>;
-      var userMapData = User.fromJson(docData);
-      // print('Document data: ${documentSnapshot.data()}');
-      // print('userMapData data: $userMapData');
-      return userMapData;
-    } else {
-      // print('Document does not exist on the database');
-      return null;
+      // .where('id', isNotEqualTo: ref.watch(userProvider)!.id)
+      .where('id', whereNotIn: groupUserIds)
+      .snapshots()
+      .map((event) {
+    List<User> userList = [];
+    for (var element in event.docs) {
+      userList.add(User.fromJson(element.data()));
     }
-  });
-}
-
-Future<User?> getUserWithName(String name) {
-  return FirebaseFirestore.instance
-      .collection('org')
-      .doc('org_id')
-      .collection('users')
-      .where('name', isEqualTo: name)
-      .get()
-      .then((documentSnapshot) {
-    if (documentSnapshot.docs.isNotEmpty) {
-      var docData = documentSnapshot.docs[0].data();
-      var userMapData = User.fromJson(docData);
-      return userMapData;
-    } else {
-      return null;
-    }
-  });
-}
-
-Future<void> addUserInChat(User user, Chat chat) async {
-  await FirebaseFirestore.instance
-      .collection('org')
-      .doc('org_id')
-      .collection('chats')
-      .doc(chat.id)
-      .update({
-    'userIds': [...chat.userIds, user..id]
+    return userList;
   });
 }
 
@@ -87,6 +71,71 @@ Future<User?> getUserInLocal(String userId, WidgetRef ref) async {
   });
 }
 
+// receiverUser > msg detail
+Future<User?> getUser(String userId) {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('users')
+      .doc(userId)
+      .get()
+      .then((DocumentSnapshot documentSnapshot) {
+    if (documentSnapshot.exists) {
+      var docData = documentSnapshot.data() as Map<String, dynamic>;
+      var userMapData = User.fromJson(docData);
+      // print('Document data: ${documentSnapshot.data()}');
+      // print('userMapData data: $userMapData');
+      return userMapData;
+    } else {
+      // print('Document does not exist on the database');
+      return null;
+    }
+  });
+}
+
+// login, register
+Future<User?> getUserWithName(String name) {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('users')
+      .where('name', isEqualTo: name)
+      .get()
+      .then((documentSnapshot) {
+    if (documentSnapshot.docs.isNotEmpty) {
+      var docData = documentSnapshot.docs[0].data();
+      var userMapData = User.fromJson(docData);
+      return userMapData;
+    } else {
+      return null;
+    }
+  });
+}
+
+// Future<void> addUserInChat(User user, Chat chat) async {
+//   await FirebaseFirestore.instance
+//       .collection('org')
+//       .doc('org_id')
+//       .collection('chats')
+//       .doc(chat.id)
+//       .update({
+//     'userIds': [...chat.userIds, user..id]
+//   });
+// }
+
+// add user in group > user list
+Future<void> addUserInGroupChat(List<String> userList, Chat chat) async {
+  await FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('groupChats')
+      .doc(chat.id)
+      .update({
+    'allUserIds': [...userList]
+  });
+}
+
+// peer chat > user list
 Future<Chat?> getPeerChat(String userId, String peerUserId) {
   debugPrint('getPeerChat : start');
   debugPrint('getPeerChat : $userId, $peerUserId');

@@ -128,12 +128,13 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
                       );
                       var chat = sortList[index];
                       return InkWell(
-                        onTap: () =>
-                            Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => MessageListPage(
-                            chat: chat,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => MessageListPage(
+                              chat: chat,
+                            ),
                           ),
-                        )),
+                        ),
                         child: ListTile(
                           leading: CircleAvatar(child: Text(index.toString())),
                           title: chat.isGroup
