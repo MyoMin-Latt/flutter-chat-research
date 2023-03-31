@@ -7,6 +7,7 @@ import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/utils/firebase_function.dart';
 import '../../../core/utils/onesignal/onesignal.dart';
 
 class ATuChatPage extends ConsumerStatefulWidget {
@@ -17,45 +18,6 @@ class ATuChatPage extends ConsumerStatefulWidget {
 }
 
 class _ATuChatPageState extends ConsumerState<ATuChatPage> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  Stream<List<Chat>> getPeerChats() {
-    return FirebaseFirestore.instance
-        .collection('org')
-        .doc('org_id')
-        .collection('chatUsers')
-        .doc(ref.watch(userProvider)!.id)
-        .collection('chats')
-        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider)!.id])
-        .snapshots()
-        .map((event) {
-          List<Chat> messageList = [];
-          for (var element in event.docs) {
-            messageList.add(Chat.fromJson(element.data()));
-          }
-          return messageList;
-        });
-  }
-
-  Stream<List<Chat>> getGroupChats() {
-    return FirebaseFirestore.instance
-        .collection('org')
-        .doc('org_id')
-        .collection('groupChats')
-        .where('allUserIds', arrayContainsAny: [ref.watch(userProvider)!.id])
-        .snapshots()
-        .map((event) {
-          List<Chat> messageList = [];
-          for (var element in event.docs) {
-            messageList.add(Chat.fromJson(element.data()));
-          }
-          return messageList;
-        });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,7 +71,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
         child: Column(
           children: [
             StreamBuilder<List<Chat>>(
-              stream: getGroupChats(),
+              stream: getGroupChats(ref.watch(userProvider)!),
               builder: (context, snapshot) {
                 // if (snapshot.connectionState == ConnectionState.waiting) {
                 //   return const Loader();
@@ -151,7 +113,7 @@ class _ATuChatPageState extends ConsumerState<ATuChatPage> {
               },
             ),
             StreamBuilder<List<Chat>>(
-              stream: getPeerChats(),
+              stream: getPeerChats(ref.watch(userProvider)!),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Loader();

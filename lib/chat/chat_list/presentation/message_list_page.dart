@@ -230,12 +230,13 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         actions: [
           widget.chat.isGroup
               ? IconButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          UserListPage(chat: widget.chat, addUser: 'adduser'),
-                    ),
-                  ),
+                  onPressed: () => getGroupChat(widget.chat.id)
+                      .then((value) => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  UserListPage(chat: value, addUser: 'adduser'),
+                            ),
+                          )),
                   icon: const Icon(Icons.person_add),
                 )
               : const SizedBox(),

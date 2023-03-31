@@ -61,54 +61,6 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                       peerUserName: '',
                     );
 
-                    // if (userList.length == 1) {
-                    //   {
-                    //     getPeerChat(
-                    //       ref.watch(userProvider)!.id,
-                    //       userList[0].id,
-                    //     ).then((value) {
-                    //       if (value == null) {
-                    //         Navigator.of(context)
-                    //             .pushReplacement(MaterialPageRoute(
-                    //           builder: (context) => MessageListPage(
-                    //               chat: Chat(
-                    //             id: const Uuid().v4(),
-                    //             name: userList[0].name,
-                    //             photo: '',
-                    //             isGroup: false,
-                    //             peerUserId: userList[0].id,
-                    //             peerUserName: userList[0].name,
-                    //             userIds: [],
-                    //             adminIds: [],
-                    //             allUserIds: [],
-                    //             lastMessage: '',
-                    //           )),
-                    //         ));
-                    //       } else {
-                    //         Navigator.of(context).pushReplacement(
-                    //           MaterialPageRoute(
-                    //             builder: (context) => MessageListPage(
-                    //               chat: value,
-                    //             ),
-                    //           ),
-                    //         );
-                    //       }
-                    //     });
-                    //   }
-                    // } else if (userList.length > 1) {
-                    //   widget.addUser.toString() == 'adduser'
-                    //       ? addUserInGroupChat(
-                    //               userIds.toSet().toList(), widget.chat!)
-                    //           .then((value) => Navigator.of(context).pop())
-                    //       : Navigator.of(context).pushReplacement(
-                    //           MaterialPageRoute(
-                    //             builder: (context) => MessageListPage(
-                    //               chat: groupChat,
-                    //             ),
-                    //           ),
-                    //         );
-                    // }
-
                     widget.addUser.toString() == 'adduser'
                         ? addUserInGroupChat(
                                 userIds.toSet().toList(), widget.chat!)

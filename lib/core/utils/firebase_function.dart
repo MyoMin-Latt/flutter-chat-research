@@ -50,26 +50,26 @@ Stream<List<User>> getUsers(List<String> groupUserIds, String currentUserId) {
   });
 }
 
-Future<User?> getUserInLocal(String userId, WidgetRef ref) async {
-  return FirebaseFirestore.instance
-      .collection('org')
-      .doc('org_id')
-      .collection('users')
-      .doc(userId)
-      .get()
-      .then((DocumentSnapshot documentSnapshot) {
-    if (documentSnapshot.exists) {
-      var docData = documentSnapshot.data() as Map<String, dynamic>;
-      var user = User.fromJson(docData);
-      // print('Document data: ${documentSnapshot.data()}');
-      ref.read(userProvider.notifier).update((state) => user);
-      return user;
-    } else {
-      // print('Document does not exist on the database');
-      return null;
-    }
-  });
-}
+// Future<User?> getUserInLocal(String userId, WidgetRef ref) async {
+//   return FirebaseFirestore.instance
+//       .collection('org')
+//       .doc('org_id')
+//       .collection('users')
+//       .doc(userId)
+//       .get()
+//       .then((DocumentSnapshot documentSnapshot) {
+//     if (documentSnapshot.exists) {
+//       var docData = documentSnapshot.data() as Map<String, dynamic>;
+//       var user = User.fromJson(docData);
+//       // print('Document data: ${documentSnapshot.data()}');
+//       ref.read(userProvider.notifier).update((state) => user);
+//       return user;
+//     } else {
+//       // print('Document does not exist on the database');
+//       return null;
+//     }
+//   });
+// }
 
 // receiverUser > msg detail
 Future<User?> getUser(String userId) {
@@ -112,17 +112,6 @@ Future<User?> getUserWithName(String name) {
   });
 }
 
-// Future<void> addUserInChat(User user, Chat chat) async {
-//   await FirebaseFirestore.instance
-//       .collection('org')
-//       .doc('org_id')
-//       .collection('chats')
-//       .doc(chat.id)
-//       .update({
-//     'userIds': [...chat.userIds, user..id]
-//   });
-// }
-
 // add user in group > user list
 Future<void> addUserInGroupChat(List<String> userList, Chat chat) async {
   await FirebaseFirestore.instance
@@ -132,30 +121,6 @@ Future<void> addUserInGroupChat(List<String> userList, Chat chat) async {
       .doc(chat.id)
       .update({
     'allUserIds': [...userList]
-  });
-}
-
-// peer chat > user list
-Future<Chat?> getPeerChat(String userId, String peerUserId) {
-  debugPrint('getPeerChat : start');
-  debugPrint('getPeerChat : $userId, $peerUserId');
-
-  return FirebaseFirestore.instance
-      .collection('org')
-      .doc('org_id')
-      .collection('chatUsers')
-      .doc(userId)
-      .collection('chats')
-      .where('peerUserId', isEqualTo: peerUserId)
-      .get()
-      .then((documentSnapshot) {
-    if (documentSnapshot.docs.isNotEmpty) {
-      var docData = documentSnapshot.docs[0].data();
-      var chat = Chat.fromJson(docData);
-      return chat;
-    } else {
-      return null;
-    }
   });
 }
 
@@ -177,4 +142,80 @@ Future<void> addGroupChat(Chat chat) async {
       .collection('groupChats')
       .doc(chat.id)
       .set(chat.toJson());
+}
+
+// stream chat/ peer
+Stream<List<Chat>> getPeerChats(User user) {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('chatUsers')
+      .doc(user.id)
+      .collection('chats')
+      .where('allUserIds', arrayContainsAny: [user.id])
+      .snapshots()
+      .map((event) {
+        List<Chat> messageList = [];
+        for (var element in event.docs) {
+          messageList.add(Chat.fromJson(element.data()));
+        }
+        return messageList;
+      });
+}
+
+// stream chat/ group
+Stream<List<Chat>> getGroupChats(User user) {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('groupChats')
+      .where('allUserIds', arrayContainsAny: [user.id])
+      .snapshots()
+      .map((event) {
+        List<Chat> messageList = [];
+        for (var element in event.docs) {
+          messageList.add(Chat.fromJson(element.data()));
+        }
+        return messageList;
+      });
+}
+
+// group chat
+Future<Chat?> getGroupChat(String chatId) {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('groupChats')
+      .doc(chatId)
+      .get()
+      .then((documentSnapshot) {
+    var docData = documentSnapshot.data();
+    if (docData != null) {
+      var chat = Chat.fromJson(docData);
+      return chat;
+    } else {
+      return null;
+    }
+  });
+}
+
+// peer chat > user list
+Future<Chat?> getPeerChat(String userId, String peerUserId) {
+  return FirebaseFirestore.instance
+      .collection('org')
+      .doc('org_id')
+      .collection('chatUsers')
+      .doc(userId)
+      .collection('chats')
+      .where('peerUserId', isEqualTo: peerUserId)
+      .get()
+      .then((documentSnapshot) {
+    if (documentSnapshot.docs.isNotEmpty) {
+      var docData = documentSnapshot.docs[0].data();
+      var chat = Chat.fromJson(docData);
+      return chat;
+    } else {
+      return null;
+    }
+  });
 }
