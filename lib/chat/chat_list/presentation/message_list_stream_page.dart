@@ -18,9 +18,9 @@ import '../../models/message.dart';
 import '../../share/chat_provider.dart';
 import 'message_detail_page.dart';
 
-class MessageListPage extends ConsumerStatefulWidget {
+class MessageListStreamPage extends ConsumerStatefulWidget {
   final Chat chat;
-  const MessageListPage({
+  const MessageListStreamPage({
     super.key,
     required this.chat,
   });
@@ -29,7 +29,7 @@ class MessageListPage extends ConsumerStatefulWidget {
   ConsumerState<ConsumerStatefulWidget> createState() => _MessageListState();
 }
 
-class _MessageListState extends ConsumerState<MessageListPage> {
+class _MessageListState extends ConsumerState<MessageListStreamPage> {
   final controller = ScrollController();
   bool jump = true;
   final _streamController = StreamController<List<Message>>();
@@ -92,160 +92,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         .doc(message.id)
         .update({
       'receiverIds': [...message.receiverIds, userId]
-    });
-  }
-
-  void requestPage() async {
-    if (products.isEmpty) {
-      await FirebaseFirestore.instance
-          .collection('org')
-          .doc('org_id')
-          .collection('messages')
-          .where('chatId', isEqualTo: widget.chat.id)
-          .orderBy('sendOn', descending: true)
-          .limit(20)
-          .get()
-          .then((value) {
-        for (var element in value.docs) {
-          /// List<QueryDocumentSnapshot<Map<String, dynamic>>>
-          products.add(Message.fromJson(element.data()));
-
-          _docSnapshot = element;
-        }
-        List<Message> setProducts = products.toSet().toList();
-        _streamController.add(setProducts);
-      });
-    } else {
-      await FirebaseFirestore.instance
-          .collection('org')
-          .doc('org_id')
-          .collection('messages')
-          .where('chatId', isEqualTo: widget.chat.id)
-          .orderBy('sendOn', descending: true)
-          .startAfterDocument(_docSnapshot!)
-          .limit(20)
-          .get()
-          .then((value) {
-        print('doc snapshot : ${value.docs[0].data()}');
-        for (var element in value.docs) {
-          /// List<QueryDocumentSnapshot<Map<String, dynamic>>>
-          products.add(Message.fromJson(element.data()));
-          _docSnapshot = element;
-        }
-        List<Message> setProducts = products.toSet().toList();
-        _streamController.add(setProducts);
-      });
-    }
-  }
-
-  tapOnPin() async {
-    await FirebaseFirestore.instance
-        .collection('org')
-        .doc('org_id')
-        .collection('messages')
-        .where('chatId', isEqualTo: widget.chat.id)
-        .orderBy('sendOn', descending: true)
-        .startAfterDocument(_docSnapshot!)
-        .limit(20)
-        .get()
-        .then((value) {
-      for (var element in value.docs) {
-        /// List<QueryDocumentSnapshot<Map<String, dynamic>>>
-        products.add(Message.fromJson(element.data()));
-        _docSnapshot = element;
-      }
-      List<Message> setProducts = products.toSet().toList();
-      _streamController.add(setProducts);
-    });
-  }
-
-  void onChangeData(
-      List<DocumentChange<Map<String, dynamic>>> documentChanges) {
-    var isChange = false;
-    List<Message> setProducts = products.toSet().toList();
-    products.clear();
-    products = setProducts;
-    _streamController.add(setProducts);
-    documentChanges.forEach((productChange) {
-      if (productChange.type == DocumentChangeType.removed) {
-        // print('onchange : before removed : $products');
-        products.removeWhere((product) {
-          return productChange.doc.id == product.id;
-        });
-        // print('onchange : after removed : $products');
-        isChange = true;
-      } else {
-        if (productChange.type == DocumentChangeType.modified) {
-          int indexWhere = products.indexWhere((product) {
-            return productChange.doc.id == product.id;
-          });
-          if (indexWhere >= 0) {
-            // print('onchange : before modified : $products');
-            products[indexWhere] = Message.fromJson(productChange.doc.data()!);
-            // print('onchange : after modified : $products');
-          }
-          isChange = true;
-        } else if (productChange.type == DocumentChangeType.added) {
-          // print('onchange : before added : $products');
-          products.add(Message.fromJson(documentChanges[0].doc.data()!));
-          // print('onchange : after added : $products');
-          isChange = true;
-          // if (mounted) {
-          //   var msg = Message.fromJson(productChange.doc.data()!);
-          //   if (msg.senderId == ref.watch(userProvider)!.id) {
-          //     SchedulerBinding.instance.addPostFrameCallback(
-          //       (timeStamp) {
-          //         controller.jumpTo(controller.position.maxScrollExtent);
-          //       },
-          //     );
-          //   }
-          // }
-        }
-      }
-    });
-    if (isChange) {
-      List<Message> setProducts = products.toSet().toList();
-      products.clear();
-      products = setProducts;
-      _streamController.add(products);
-      if (mounted) {
-        if (products.last.senderId == ref.watch(userProvider)!.id) {
-          SchedulerBinding.instance.addPostFrameCallback(
-            (timeStamp) {
-              controller.jumpTo(controller.position.maxScrollExtent);
-            },
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    FirebaseFirestore.instance
-        .collection('org')
-        .doc('org_id')
-        .collection('messages')
-        .where('chatId', isEqualTo: widget.chat.id)
-        .snapshots()
-        .listen((data) {
-      debugPrint('Firebase listen : start');
-      if (products.isEmpty) {
-        debugPrint('products empty : true');
-        requestPage();
-      } else {
-        jump = false;
-        onChangeData(data.docChanges);
-      }
-    });
-
-    controller.addListener(() {
-      if (controller.position.minScrollExtent == controller.offset) {
-        setState(() => jump = false);
-        requestPage();
-      }
     });
   }
 
@@ -326,7 +172,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         ],
       ),
       body: StreamBuilder<List<Message>>(
-        stream: _streamController.stream,
+        stream: getMessage(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             List<Message>? messageList = snapshot.data;
@@ -430,10 +276,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
             );
           }
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.arrow_upward),
       ),
     );
   }
