@@ -7,7 +7,7 @@ import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:flutter_chat_research/core/utils/firebase_function.dart';
 
 import '../../../auth/models/user.dart';
-import 'message_list_page.dart';
+import '../../message/presentation/message_list_page.dart';
 
 class UserListPage extends ConsumerStatefulWidget {
   final Chat? chat;

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_research/auth/presentation/register_page.dart';
-import 'package:flutter_chat_research/chat/chat_list/presentation/message_list_page.dart';
+import 'package:flutter_chat_research/chat/message/presentation/message_list_page.dart';
 import 'package:flutter_chat_research/chat/chat_list/presentation/user_list.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
 import 'package:flutter_chat_research/chat/share/chat_provider.dart';

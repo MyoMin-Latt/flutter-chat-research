@@ -16,7 +16,7 @@ import '../../../core/share/core_provider.dart';
 import '../../../core/utils/firebase_function.dart';
 import '../../models/message.dart';
 import '../../share/chat_provider.dart';
-import 'message_detail_page.dart';
+import '../../chat_list/presentation/message_detail_page.dart';
 
 class MessageListPage extends ConsumerStatefulWidget {
   final Chat chat;
@@ -35,24 +35,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   final _streamController = StreamController<List<Message>>();
   List<Message> products = [];
   DocumentSnapshot<Object?>? _docSnapshot;
-
-  Stream<List<Message>> getMessage() {
-    return FirebaseFirestore.instance
-        .collection('org')
-        .doc('org_id')
-        .collection('messages')
-        .where('chatId', isEqualTo: widget.chat.id)
-        .snapshots()
-        .map((event) {
-      // QuerySnapshot<Map<String, dynamic>>
-      List<Message> messageList = [];
-      for (var element in event.docs) {
-        // List<QueryDocumentSnapshot<Map<String, dynamic>>>
-        messageList.add(Message.fromJson(element.data()));
-      }
-      return messageList;
-    });
-  }
 
   String generateRandomString(int lengthOfString) {
     final random = Random();
@@ -95,6 +77,25 @@ class _MessageListState extends ConsumerState<MessageListPage> {
     });
   }
 
+  Future<void> messageDetial(BuildContext context, Message message) {
+    return showModalBottomSheet<void>(
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+              color: Colors.white),
+          child: MessageDetailPage(message, controller),
+        ),
+      ),
+    );
+  }
+
   void requestPage() async {
     if (products.isEmpty) {
       await FirebaseFirestore.instance
@@ -126,7 +127,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           .limit(20)
           .get()
           .then((value) {
-        print('doc snapshot : ${value.docs[0].data()}');
         for (var element in value.docs) {
           /// List<QueryDocumentSnapshot<Map<String, dynamic>>>
           products.add(Message.fromJson(element.data()));
@@ -134,6 +134,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         }
         List<Message> setProducts = products.toSet().toList();
         _streamController.add(setProducts);
+        controller.jumpTo(1000);
       });
     }
   }
@@ -231,9 +232,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         .where('chatId', isEqualTo: widget.chat.id)
         .snapshots()
         .listen((data) {
-      debugPrint('Firebase listen : start');
       if (products.isEmpty) {
-        debugPrint('products empty : true');
         requestPage();
       } else {
         jump = false;
@@ -242,7 +241,8 @@ class _MessageListState extends ConsumerState<MessageListPage> {
     });
 
     controller.addListener(() {
-      if (controller.position.minScrollExtent == controller.offset) {
+      // if (controller.position.minScrollExtent == controller.offset) {
+      if (controller.offset < 50) {
         setState(() => jump = false);
         requestPage();
       }
@@ -434,25 +434,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
         child: const Icon(Icons.arrow_upward),
-      ),
-    );
-  }
-
-  Future<void> messageDetial(BuildContext context, Message message) {
-    return showModalBottomSheet<void>(
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      context: context,
-      builder: (BuildContext context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (_, controller) => Container(
-          decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-              color: Colors.white),
-          child: MessageDetailPage(message, controller),
-        ),
       ),
     );
   }

@@ -5,6 +5,25 @@ import 'package:flutter_chat_research/chat/share/chat_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../auth/models/user.dart';
+import '../../chat/models/message.dart';
+
+// Stream<List<Message>> getMessage() {
+//   return FirebaseFirestore.instance
+//       .collection('org')
+//       .doc('org_id')
+//       .collection('messages')
+//       .where('chatId', isEqualTo: widget.chat.id)
+//       .snapshots()
+//       .map((event) {
+//     // QuerySnapshot<Map<String, dynamic>>
+//     List<Message> messageList = [];
+//     for (var element in event.docs) {
+//       // List<QueryDocumentSnapshot<Map<String, dynamic>>>
+//       messageList.add(Message.fromJson(element.data()));
+//     }
+//     return messageList;
+//   });
+// }
 
 // add user
 Future<void> addUser(User user) async {
