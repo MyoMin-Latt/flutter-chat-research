@@ -1,11 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_chat_research/chat/models/chat.dart';
-import 'package:flutter_chat_research/chat/share/chat_provider.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../auth/models/user.dart';
-import '../../chat/models/message.dart';
 
 // Stream<List<Message>> getMessage() {
 //   return FirebaseFirestore.instance

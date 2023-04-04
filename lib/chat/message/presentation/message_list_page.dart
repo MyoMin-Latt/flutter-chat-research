@@ -35,6 +35,9 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   final _streamController = StreamController<List<Message>>();
   List<Message> products = [];
   DocumentSnapshot<Object?>? _docSnapshot;
+  Message? message;
+  late Timer timer;
+  final itemKey = GlobalKey();
 
   String generateRandomString(int lengthOfString) {
     final random = Random();
@@ -97,6 +100,7 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   }
 
   void requestPage() async {
+    print('request page start');
     if (products.isEmpty) {
       await FirebaseFirestore.instance
           .collection('org')
@@ -133,6 +137,8 @@ class _MessageListState extends ConsumerState<MessageListPage> {
           _docSnapshot = element;
         }
         List<Message> setProducts = products.toSet().toList();
+        products.clear();
+        products = setProducts;
         _streamController.add(setProducts);
         controller.jumpTo(1000);
       });
@@ -219,6 +225,12 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         }
       }
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    timer.cancel();
   }
 
   @override
@@ -366,27 +378,33 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                     DateFormat('dd/MM/yyyy HH:mm').format(message.sendOn);
 
                 return message.senderId == ref.watch(userProvider)!.id
-                    ? Align(
-                        alignment: Alignment.centerRight,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width - 45,
-                            minWidth: 70,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '$index. ${message.text}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  '$date ${message.status}',
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ],
+                    ? InkWell(
+                        onTap: () {
+                          message = messageList[index];
+                          print(message);
+                        },
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width - 45,
+                              minWidth: 70,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '$index. ${message.text}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  Text(
+                                    '$date ${message.status}',
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -432,7 +450,66 @@ class _MessageListState extends ConsumerState<MessageListPage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          print('Tap on float button');
+          // index 11/80
+          // var msg = Message(
+          //     id: 'af3b0db7-52d6-48b2-84e9-c79ec0395d42',
+          //     chatId: 'd1646091-8984-49d4-bfa5-2abb05feb855',
+          //     senderId: '1ddef799-56de-416f-a046-027ce2b4a449',
+          //     sendOn: DateTime.parse('2023-04-03 10:12:10.133699'),
+          //     text: 'dhjhDbz',
+          //     status: 'seen',
+          //     receiverIds: [
+          //       '1ddef799-56de-416f-a046-027ce2b4a449',
+          //       '31e32866-7365-4084-b243-1a4c7583340a'
+          //     ]);
+          // index 1/40
+          // var msg = Message(
+          //     id: '3f80152c-a9a2-4ed3-ac5a-4cba25b1d6af',
+          //     chatId: 'd1646091-8984-49d4-bfa5-2abb05feb855',
+          //     senderId: '1ddef799-56de-416f-a046-027ce2b4a449',
+          //     sendOn: DateTime.parse('2023-04-03 10:19:35.364495'),
+          //     text: 'yCiyqom',
+          //     status: 'seen',
+          //     receiverIds: [
+          //       '1ddef799-56de-416f-a046-027ce2b4a449',
+          //       '31e32866-7365-4084-b243-1a4c7583340a'
+          //     ]);
+          // index 4/100
+          var msg = Message(
+              id: '66b1fd55-c3af-4de1-92a8-dbea57a53da8',
+              chatId: 'd1646091-8984-49d4-bfa5-2abb05feb855',
+              senderId: '1ddef799-56de-416f-a046-027ce2b4a449',
+              sendOn: DateTime.parse('2023-04-03 10:01:03.389224'),
+              text: 'bzzcrkp',
+              status: 'seen',
+              receiverIds: [
+                '1ddef799-56de-416f-a046-027ce2b4a449',
+                '31e32866-7365-4084-b243-1a4c7583340a'
+              ]);
+          timer = Timer.periodic(const Duration(milliseconds: 1200), (timer) {
+            int count = 0;
+            products.contains(msg)
+                ? {
+                    timer.cancel(),
+                    controller.animateTo(
+                        products.indexWhere((element) => element.id == msg.id) *
+                            51,
+                        duration: const Duration(microseconds: 500),
+                        curve: Curves.easeInOut)
+                  }
+                : {
+                    requestPage(),
+                    setState(() {
+                      jump = false;
+                    })
+                  };
+            count += 2;
+            print(timer.tick);
+            if (timer.tick == 60) timer.cancel();
+          });
+        },
         child: const Icon(Icons.arrow_upward),
       ),
     );
