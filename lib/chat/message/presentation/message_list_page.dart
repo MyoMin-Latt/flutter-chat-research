@@ -100,7 +100,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   }
 
   void requestPage() async {
-    print('request page start');
     if (products.isEmpty) {
       await FirebaseFirestore.instance
           .collection('org')
@@ -381,7 +380,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                     ? InkWell(
                         onTap: () {
                           message = messageList[index];
-                          print(message);
                         },
                         child: Align(
                           alignment: Alignment.centerRight,
@@ -451,7 +449,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          print('Tap on float button');
           // index 11/80
           // var msg = Message(
           //     id: 'af3b0db7-52d6-48b2-84e9-c79ec0395d42',
@@ -489,7 +486,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 '31e32866-7365-4084-b243-1a4c7583340a'
               ]);
           timer = Timer.periodic(const Duration(milliseconds: 1200), (timer) {
-            int count = 0;
             products.contains(msg)
                 ? {
                     timer.cancel(),
@@ -505,8 +501,6 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                       jump = false;
                     })
                   };
-            count += 2;
-            print(timer.tick);
             if (timer.tick == 60) timer.cancel();
           });
         },
