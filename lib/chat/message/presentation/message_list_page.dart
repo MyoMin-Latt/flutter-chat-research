@@ -38,6 +38,8 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   Message? message;
   late Timer timer;
   final itemKey = GlobalKey();
+  bool isPin = true;
+  Message? pinMessage;
 
   String generateRandomString(int lengthOfString) {
     final random = Random();
@@ -229,13 +231,15 @@ class _MessageListState extends ConsumerState<MessageListPage> {
   @override
   void dispose() {
     super.dispose();
-    timer.cancel();
+    if (timer.isActive) {
+      timer.cancel();
+    }
   }
 
   @override
   void initState() {
     super.initState();
-
+    timer = Timer(const Duration(seconds: 0), () {});
     FirebaseFirestore.instance
         .collection('org')
         .doc('org_id')
@@ -347,98 +351,169 @@ class _MessageListState extends ConsumerState<MessageListPage> {
               });
             }
 
-            return ListView.builder(
-              controller: controller,
-              itemCount: messageList!.length,
-              itemBuilder: (context, index) {
-                var sortList = messageList;
-                sortList.sort(
-                  (a, b) => a.sendOn.compareTo(b.sendOn),
-                );
-                var message = sortList[index];
+            return Stack(
+              children: [
+                ListView.builder(
+                  shrinkWrap: true,
+                  controller: controller,
+                  itemCount: messageList!.length,
+                  itemBuilder: (context, index) {
+                    var sortList = messageList;
+                    sortList.sort(
+                      (a, b) => a.sendOn.compareTo(b.sendOn),
+                    );
+                    var message = sortList[index];
 
-                if (message.status.toLowerCase() == 'offline') {
-                  networkStatus == NetworkStatus.connected
-                      ? setMessageStatus(message.id, 'online')
-                      : null;
-                } else if (message.status.toLowerCase() == 'online' &&
-                    message.senderId != ref.watch(userProvider)!.id) {
-                  networkStatus == NetworkStatus.connected
-                      ? setMessageStatus(message.id, 'seen')
-                      : null;
-                } else if (!message.receiverIds
-                    .contains(ref.watch(userProvider)!.id)) {
-                  networkStatus == NetworkStatus.connected
-                      ? addReceiverId(message, ref.watch(userProvider)!.id)
-                      : null;
-                }
+                    if (message.status.toLowerCase() == 'offline') {
+                      networkStatus == NetworkStatus.connected
+                          ? setMessageStatus(message.id, 'online')
+                          : null;
+                    } else if (message.status.toLowerCase() == 'online' &&
+                        message.senderId != ref.watch(userProvider)!.id) {
+                      networkStatus == NetworkStatus.connected
+                          ? setMessageStatus(message.id, 'seen')
+                          : null;
+                    } else if (!message.receiverIds
+                        .contains(ref.watch(userProvider)!.id)) {
+                      networkStatus == NetworkStatus.connected
+                          ? addReceiverId(message, ref.watch(userProvider)!.id)
+                          : null;
+                    }
 
-                var date =
-                    DateFormat('dd/MM/yyyy HH:mm').format(message.sendOn);
+                    var date =
+                        DateFormat('dd/MM/yyyy HH:mm').format(message.sendOn);
 
-                return message.senderId == ref.watch(userProvider)!.id
-                    ? InkWell(
-                        onTap: () {
-                          message = messageList[index];
-                        },
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width - 45,
-                              minWidth: 70,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '$index. ${message.text}',
-                                    style: const TextStyle(fontSize: 16),
+                    return message.senderId == ref.watch(userProvider)!.id
+                        ? InkWell(
+                            onTap: () {
+                              message = messageList[index];
+                            },
+                            onLongPress: () {
+                              setState(() {
+                                pinMessage = messageList[index];
+                              });
+                              print('pinMessage : $pinMessage');
+                            },
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width - 45,
+                                  minWidth: 70,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '$index. ${message.text}',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                      Text(
+                                        '$date ${message.status}',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    '$date ${message.status}',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
+                          )
+                        : InkWell(
+                            onTap: () {
+                              messageDetial(context, message);
+                            },
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width - 45,
+                                  minWidth: 70,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '$index. ${message.text}',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                      Text(
+                                        date,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                    // }
+                  },
+                ),
+                isPin
+                    ? InkWell(
+                        onTap: () => timer = Timer.periodic(
+                            const Duration(milliseconds: 1200), (timer) {
+                          products.contains(pinMessage)
+                              ? {
+                                  timer.cancel(),
+                                  controller.animateTo(
+                                      (products.indexWhere((element) =>
+                                                  element.id ==
+                                                  pinMessage?.id) *
+                                              51) -
+                                          100,
+                                      duration:
+                                          const Duration(microseconds: 500),
+                                      curve: Curves.easeInOut)
+                                }
+                              : {
+                                  requestPage(),
+                                  setState(() {
+                                    jump = false;
+                                  })
+                                };
+                          if (timer.tick == 60) timer.cancel();
+                        }),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 218, 216, 216),
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Colors.black, spreadRadius: 0.3)
+                              ]),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Text('Message information'),
+                                  Text('Pinned on 04/04/2023 13:45'),
+                                ],
+                              ),
+                              IconButton(
+                                onPressed: () {},
+                                icon: const Icon(
+                                  Icons.close,
+                                ),
+                              )
+                            ],
                           ),
                         ),
                       )
-                    : InkWell(
-                        onTap: () {
-                          messageDetial(context, message);
-                        },
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width - 45,
-                              minWidth: 70,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '$index. ${message.text}',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                  Text(
-                                    date,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                // }
-              },
+                    : const SizedBox(),
+              ],
             );
           } else {
             return const Center(
@@ -490,8 +565,10 @@ class _MessageListState extends ConsumerState<MessageListPage> {
                 ? {
                     timer.cancel(),
                     controller.animateTo(
-                        products.indexWhere((element) => element.id == msg.id) *
-                            51,
+                        (products.indexWhere(
+                                    (element) => element.id == msg.id) *
+                                51) -
+                            100,
                         duration: const Duration(microseconds: 500),
                         curve: Curves.easeInOut)
                   }
